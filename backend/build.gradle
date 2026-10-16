@@ -1,0 +1,53 @@
+// 闪电AI2.0 · 瞬间直播 —— 后端（MARS-1 一期 MVP）
+// 形态：模块化单体，14 个模块以【包级强边界】落在单一 Gradle 工程内（S1a v0.4 §5.1）。
+// 语言/运行时：Java 17（S1a §1.3）。构建：Gradle。
+//
+// 本增量（P0 脚手架 + 核心域逻辑）刻意把【领域核心】写成零依赖纯 Java，
+// 使其在无 Gradle / 无依赖缓存的环境下也能用 javac 编译并跑通测试。
+// Spring 装配层（Web/持久化/三方 SDK）作为下一次增量接入，届时在此声明对应依赖。
+
+plugins {
+    id 'java-library'
+}
+
+group = 'com.mars'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot BOM：为下一次增量（Web/持久化层）固定版本，本增量暂不引入 Spring 代码。
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.3.4')
+    // 项目标准测试框架（JUnit 5）；当前 spec 由 `specCheck` 任务以零依赖方式运行，
+    // 迁移到 JUnit 5 时无需改动断言语义。
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+// 零依赖 spec 套件：不依赖 JUnit，可在任何 JDK 17+ 上直接运行（本地与 CI 同一条命令）。
+tasks.register('specCheck', JavaExec) {
+    group = 'verification'
+    description = '运行仓库内零依赖 spec 套件（AC-4 / AC-8 等核心域断言）。'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.mars.testkit.AllSpecs'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('check') {
+    dependsOn 'specCheck'
+}
