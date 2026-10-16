@@ -1,0 +1,15 @@
+# Flutter / Dart 生成物
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+
+# IDE
+.idea/
+.vscode/
+
+# 平台工程（由 `flutter create --platforms=...` 生成，不手工维护）
+android/.gradle/
+ios/Pods/
