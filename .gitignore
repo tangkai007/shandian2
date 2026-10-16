@@ -1,0 +1,21 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Node / 前端
+node_modules/
+dist/
+build/
+*.log
+
+# Java / 后端
+target/
+*.class
+*.jar
+
+# 环境与密钥
+.env
+.env.*
+*.local
