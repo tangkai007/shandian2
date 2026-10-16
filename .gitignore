@@ -19,3 +19,12 @@ target/
 .env
 .env.*
 *.local
+
+# Gradle 构建状态（不入库；wrapper 必须保留）
+.gradle/
+backend/.gradle/
+build/
+backend/build/
+
+# Gradle wrapper 必须入库（构建可复现所需，是仓库内唯一的构建二进制）
+!backend/gradle/wrapper/gradle-wrapper.jar

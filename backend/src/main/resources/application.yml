@@ -51,6 +51,18 @@ mars:
     wechat: 0.006
     alipay: 0.006
     iap: 0.30
+  interaction:
+    sensitive-word:
+      # 词表重建间隔（运营改词后的生效延迟上限）
+      reload-seconds: 300
+  pay:
+    # 三方验签凭据：只经环境变量注入，不入仓。
+    # 未配置时验证器处于 fail-closed（能启动，但任何回调一律拒绝）。
+    wechat:
+      platform-cert-pem: ${MARS_WECHAT_PLATFORM_CERT_PEM:}
+      api-v3-key: ${MARS_WECHAT_API_V3_KEY:}
+    alipay:
+      public-key-pem: ${MARS_ALIPAY_PUBLIC_KEY_PEM:}
 
 logging:
   level:

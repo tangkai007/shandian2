@@ -17,11 +17,16 @@ import com.mars.common.support.OrderNoGenerator;
 import com.mars.common.tx.SpringUnitOfWork;
 import com.mars.common.tx.UnitOfWork;
 import com.mars.earning.settlement.SettlementCalculator;
+import com.mars.interaction.mapper.SensitiveWordMapper;
+import com.mars.interaction.service.CompositeSensitiveWordSource;
+import com.mars.interaction.service.ResourceSensitiveWordSource;
+import com.mars.interaction.service.SensitiveWordSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -65,6 +70,19 @@ public class DomainConfig {
     @Bean
     public SettlementCalculator settlementCalculator() {
         return new SettlementCalculator();
+    }
+
+    /**
+     * 敏感词来源：内置资源词表 + 运营可配置词表（{@code sensitive_word}）合并。
+     *
+     * <p>之所以在这里显式组装而不是让 {@code SensitiveWordMapper} 直接实现 {@code SensitiveWordSource}：
+     * 后者会让容器里出现两个同类型 bean，注入单值时产生歧义。
+     */
+    @Bean
+    public SensitiveWordSource sensitiveWordSource(SensitiveWordMapper sensitiveWordMapper) {
+        return new CompositeSensitiveWordSource(List.of(
+                new ResourceSensitiveWordSource(),
+                () -> sensitiveWordMapper.words()));
     }
 
     @Bean

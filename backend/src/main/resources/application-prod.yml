@@ -13,6 +13,13 @@ spring:
 mars:
   security:
     jwt-secret: ${MARS_JWT_SECRET}
+  pay:
+    # 生产必须提供三方验签凭据（无默认值 → 缺失即启动失败，避免带 fail-closed 的端点上线后被三方回调打爆）
+    wechat:
+      platform-cert-pem: ${MARS_WECHAT_PLATFORM_CERT_PEM}
+      api-v3-key: ${MARS_WECHAT_API_V3_KEY}
+    alipay:
+      public-key-pem: ${MARS_ALIPAY_PUBLIC_KEY_PEM}
 
 logging:
   level:

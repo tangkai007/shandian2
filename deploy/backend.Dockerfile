@@ -1,9 +1,9 @@
 # 后端镜像（S1a v0.4 §5.4 `deploy/`）
 #
-# 构建阶段：Gradle 8 + JDK 17 → 编译 + 校验（JUnit + 零依赖 spec 套件）+ 打出可执行 bootJar
+# 构建阶段：JDK 17 + 仓库自带 Gradle Wrapper → 校验（JUnit + 零依赖 spec 套件）+ 打出可执行 bootJar
 # 运行阶段：JRE 17 直接运行 `app.jar`（Flyway 迁移在启动时按 db/migration 执行）
 
-FROM gradle:8.10-jdk17 AS build
+FROM eclipse-temurin:17-jdk AS build
 
 WORKDIR /workspace
 COPY backend /workspace/backend
@@ -11,7 +11,7 @@ WORKDIR /workspace/backend
 
 # `check` = compile + JUnit 5（装配层切片）+ specCheck（领域核心：AC-1/4/5/6/8）
 # `bootJar` = 可执行 fat jar
-RUN gradle --no-daemon --console=plain clean check bootJar
+RUN chmod +x gradlew && ./gradlew --no-daemon --console=plain clean check bootJar
 
 FROM eclipse-temurin:17-jre AS runtime
 

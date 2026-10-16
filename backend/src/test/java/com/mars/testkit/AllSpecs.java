@@ -6,6 +6,8 @@ import com.mars.spec.EarningSpecs;
 import com.mars.spec.FundSpecs;
 import com.mars.spec.InteractionSpecs;
 import com.mars.spec.LiveSpecs;
+import com.mars.spec.PayVerifierSpecs;
+import com.mars.spec.SensitiveWordSpecs;
 import com.mars.spec.SettlementSpecs;
 
 import java.util.List;
@@ -23,6 +25,8 @@ public final class AllSpecs {
         CommonSpecs.register(registry);
         SettlementSpecs.register(registry);
         FundSpecs.register(registry);
+        SensitiveWordSpecs.register(registry);
+        PayVerifierSpecs.register(registry);
         InteractionSpecs.register(registry);
         AccountSpecs.register(registry);
         EarningSpecs.register(registry);
