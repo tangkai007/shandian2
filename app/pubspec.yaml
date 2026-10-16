@@ -1,0 +1,21 @@
+name: shandian_live
+description: "瞬间直播 · MARS-1 一期 MVP 客户端（Flutter 单 App 双角色：主播端 / 观众端）"
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 仅用于真实网络传输；测试与本地开发走 MockTransport，不依赖网络。
+  dio: ^5.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
