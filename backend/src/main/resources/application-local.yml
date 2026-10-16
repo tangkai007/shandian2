@@ -1,0 +1,9 @@
+# 本地 / 开发环境：允许占位实现（开发验证码、默认充值档位、风控画像占位）
+mars:
+  auth:
+    dev-code: "000000"
+
+logging:
+  level:
+    com.mars: DEBUG
+    org.mybatis: DEBUG

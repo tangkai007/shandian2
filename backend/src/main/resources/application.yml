@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: mars-live-backend
+  profiles:
+    default: local
+  datasource:
+    url: jdbc:mysql://${MARS_DB_HOST:127.0.0.1}:${MARS_DB_PORT:3306}/${MARS_DB_NAME:mars_live}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8
+    username: ${MARS_DB_USER:root}
+    password: ${MARS_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 2
+  flyway:
+    enabled: true
+    # 迁移脚本按 S1a §5.4 放在仓库根 db/migration（容器内以绝对路径覆盖）
+    locations: filesystem:${MARS_DB_MIGRATION_DIR:../db/migration}
+    baseline-on-migrate: false
+  data:
+    redis:
+      host: ${MARS_REDIS_HOST:127.0.0.1}
+      port: ${MARS_REDIS_PORT:6379}
+      password: ${MARS_REDIS_PASSWORD:}
+      timeout: 2s
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  mvc:
+    problemdetails:
+      enabled: false
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+
+server:
+  port: ${MARS_SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+
+mars:
+  security:
+    jwt-secret: ${MARS_JWT_SECRET:dev-only-secret-change-in-env}
+  minor-limit:
+    single-limit-coin: 1000
+    daily-limit-coin: 5000
+    requires-realname: true
+  channel-fee-rate:
+    wechat: 0.006
+    alipay: 0.006
+    iap: 0.30
+
+logging:
+  level:
+    root: INFO
+    com.mars: INFO

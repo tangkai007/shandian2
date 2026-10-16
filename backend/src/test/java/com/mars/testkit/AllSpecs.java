@@ -3,6 +3,7 @@ package com.mars.testkit;
 import com.mars.spec.AccountSpecs;
 import com.mars.spec.CommonSpecs;
 import com.mars.spec.EarningSpecs;
+import com.mars.spec.FundSpecs;
 import com.mars.spec.InteractionSpecs;
 import com.mars.spec.LiveSpecs;
 import com.mars.spec.SettlementSpecs;
@@ -21,6 +22,7 @@ public final class AllSpecs {
         Registry registry = new Registry();
         CommonSpecs.register(registry);
         SettlementSpecs.register(registry);
+        FundSpecs.register(registry);
         InteractionSpecs.register(registry);
         AccountSpecs.register(registry);
         EarningSpecs.register(registry);

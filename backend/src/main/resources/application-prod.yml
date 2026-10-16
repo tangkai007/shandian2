@@ -1,0 +1,20 @@
+# 生产：仅 "prod" profile → 占位实现（DevSmsCodeVerifier / DefaultRechargePackageCatalog /
+# DefaultViewerRiskProfile）均不装配。若未提供真实实现，应用将<b>启动失败</b>（fail-fast），
+# 这是刻意设计：避免占位实现被误带上线。
+#
+# 下列环境变量为必填（不提供默认值）：
+#   MARS_JWT_SECRET / MARS_DB_PASSWORD / MARS_REDIS_PASSWORD
+spring:
+  datasource:
+    url: jdbc:mysql://${MARS_DB_HOST}:${MARS_DB_PORT:3306}/${MARS_DB_NAME:mars_live}?useSSL=true&serverTimezone=UTC&characterEncoding=utf8
+  flyway:
+    locations: filesystem:${MARS_DB_MIGRATION_DIR}
+
+mars:
+  security:
+    jwt-secret: ${MARS_JWT_SECRET}
+
+logging:
+  level:
+    root: WARN
+    com.mars: INFO
