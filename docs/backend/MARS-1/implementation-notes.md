@@ -1,7 +1,9 @@
 # MARS-1 · 后端实现说明
 
-> 事实来源：PRD **v0.3** + 技术设计 **S1a v0.4** + 后端 API 契约 **S2a v1.2**。
+> 事实来源：PRD **v0.3** + 技术设计 **S1a v0.4** + 后端 API 契约 **S2a v1.3**（2026-10-17 升版）。
 > 分支：`release/MARS-1-live-mvp`（自 `main` 拉出）。
+>
+> 契约正文为外部产物（不属于本仓库）：`docs/backend/MARS-1/api-contract.md` + `openapi.json`，随 Issue 评论以**稳定链接 + 附件**发布；本文件只记录**实现**与**偏差**，契约口径以契约正文为准。
 
 ## 增量 1 · P0 脚手架 + 核心域逻辑（已 PASS）
 
@@ -110,18 +112,69 @@
 | `GET /api/v1/live/rooms/{roomId}/replays`、`GET /api/v1/replays/{replayId}/play-url` | `ReplayController` | 公开（契约标 公开/用户，无 `@RequireRoles` → 匿名可访问） | 回放列表 / 播放地址 |
 | `POST /api/v1/live/rooms/{roomId}/report` | `RoomReportController` | `VIEWER`/`ANCHOR` | 用户举报房间 |
 
-### 4.4 与 S2a v1.2 契约及 @FrontendDev admin 前端路径对照（Leader 要求）
+### 4.4 与 S2a v1.2（增量 4 时点）契约及 @FrontendDev admin 前端路径对照（Leader 要求）
 
-**结论：本轮实现的全部路径与 S2a v1.2 契约一致，且与 `admin/src/api/endpoints.ts`（前端 `baseURL=/api/v1`）逐条吻合；字段形状与 `admin/src/types/contract.ts` 一致。** 发现 **4 处偏差**（前端当前走 mock）：
+**结论：本轮实现的全部路径与 S2a v1.2（增量 4 时点；现行为 v1.3，差异见 §5.3）契约一致，且与 `admin/src/api/endpoints.ts`（前端 `baseURL=/api/v1`）逐条吻合；字段形状与 `admin/src/types/contract.ts` 一致。** 发现 **4 处偏差**（前端当前走 mock）：
 
 | # | 偏差 | 前端 mock | 后端（按契约） | 处理 |
 | --- | --- | --- | --- | --- |
-| a | `POST .../tasks/{id}/claim` 冲突模型 | **房间级锁**（`AdminRoomRow.locked_by`，房间被别人锁则 `40900`，随后锁房） | **任务级原子认领**（`PENDING→CLAIMED`，已认领/已完结 → `40900`）；不持久化 `locked_by` | 同为 `40900`，触发实体不同；ADM-04 房间列表（增量 5）才会消费 `locked_by`，届时对齐 |
+| a | `POST .../tasks/{id}/claim` 冲突模型 | **房间级锁**（`AdminRoomRow.locked_by`，房间被别人锁则 `40900`，随后锁房） | **任务级原子认领**（`PENDING→CLAIMED`，已认领/已完结 → `40900`）；不持久化 `locked_by` | 同为 `40900`，触发实体不同；**增量 5 已对齐**：ADM-04 房间列表把 `CLAIMED` 任务认领人聚合为 `locked_by`/`locked_by_name` |
 | b | `GET .../evidence/{actionId}` | mock 硬编码 `rule_id='AV-0031'` / `confidence=92` | 返回**真实快照**（强制关播 `CUT` 为 `""`/`0`；处置则取任务 `rule_id`/`confidence`） | mock 为桩，以后端真实快照为准 |
 | c | `GET /admin/reports` 种子 | mock 种一条 `DANMAKU` 目标行 | 用户端 `API-INT-09` 只落 `ROOM`；后台 `target_type` 按不透明字符串存取 | 无契约违背（`target_type` 契约 union 含 `DANMAKU`，可扩展） |
-| d | 未实现端点 | mock 已实现 ADM-01…04 / 14…19 / 21…28、会话登录等 | **未实现**（增量 5） | 见下方增量 5 清单 |
+| d | 未实现端点 | mock 已实现 ADM-01…04 / 14…19 / 21…28、会话登录等 | **已于增量 5 补齐**（ADM-01…04 / 14…19 / 21…28 + AUTH-03/04/05/06/10/11 + ASSET-07/08）；仅会话登录 `/admin/session/*` 属后台 SSO 网关，未在后端实现 | 见 §5 |
 
 > 与契约一致性依据：`docs/backend/MARS-1/api-contract.md`（§API-CB-02/03/04、§API-ADM-05…13、§API-ADM-20、§API-ADM-29、§API-INT-09、§API-REP-01/02）。
+
+## 增量 5 · 后台端点补全 + 账号/实名/IAP（实现 PASS · 契约升 v1.3）
+
+闭合 §4.4 表中「d. 未实现端点」差集，并与后台前端 `admin/src/api/endpoints.ts` / `types/contract.ts` 逐字段对齐（snake_case、字符串型 `user_id`/`room_id`/`bill_id`）。
+
+> **本轮（补产物）为 docs-only**：`backend/src` 零改动；实现代码仍为 `2824238`（`3ceb0be` 的线性子提交）。`app/` · `admin/` 零改动。
+
+### 5.1 新增端点（对照契约 §3.9 / §4.1 / §4.6）
+
+| 契约 | 端点 | 实现类 | 角色 | 说明 |
+| --- | --- | --- | --- | --- |
+| API-ADM-01/02/03 | `GET /api/v1/admin/users`（`?keyword`）、`POST /{id}/ban`、`POST /{id}/unban` | `AdminUserController` | `OPS` | 关键字命中昵称 / 手机号哈希 / 用户 ID；封禁 `BANNED` + `ban_reason`；解封清空 |
+| API-ADM-04 | `GET /api/v1/admin/rooms` | `AdminRoomListController` | `OPS`/`AUDITOR` | **消费 `locked_by`**：`CLAIMED` 审核任务的认领人聚合为房间锁；`risk_score` = 未关闭任务最高置信度；`alerts` 按置信度倒序 |
+| API-ADM-14/15/16 | `GET /api/v1/admin/gifts`、`POST /api/v1/admin/gifts`、`PATCH /api/v1/admin/gifts/{id}` | `AdminGiftController` | `OPS` | 新建默认 `ON`；`PATCH` 字段级局部更新（`null` = 不变） |
+| API-ADM-17/18 | `GET /api/v1/admin/categories`、`PATCH /api/v1/admin/categories/{id}` | `AdminCatalogController` | `OPS` | 局部更新 |
+| API-ADM-19 | `GET`/`POST /api/v1/admin/banners`、`PATCH /api/v1/admin/banners/{id}` | `AdminCatalogController` | `OPS` | **整行覆盖**（见偏差 g） |
+| API-ADM-21/22 | `GET /api/v1/admin/finance/settlements`、`GET .../settlements/{billId}` | `AdminFinanceController` | `FINANCE` | 扁平 `bill_id` + 渠道明细（AC-8 复算载荷） |
+| API-ADM-23 | `POST .../settlements/generate` | 同上 | `FINANCE` | 幂等（同期已出账跳过）；无取数来源 → `generated=false` |
+| API-ADM-24/25/26 | `GET .../withdrawals`、`POST .../withdrawals/{orderNo}/review`、`POST .../pay` | 同上 | `FINANCE` | 队列附 `anchor_tax_mode` + `minimum_fen`（取口径，不硬编码）；审核/打款复用 `WithdrawalService`（幂等） |
+| API-ADM-27 | `GET .../reconcile` | 同上 | `FINANCE` | 五条对账等式复算；`diff_fen ≠ 0 → frozen` |
+| API-ADM-28 | `GET .../invoices`、`POST .../invoices/{invoiceId}/issue` | 同上 | `FINANCE` | 开票回填 `invoice_url` |
+| API-AUTH-10/11 | `POST /api/v1/auth/realname/submit`、`GET /api/v1/auth/realname` | `AuthController` + `RealnameService` | 已登录 | 状态机 `UNVERIFIED→VERIFYING→VERIFIED/FAILED`；连续失败 5 次 `LOCKED` → `42900`；`is_minor` 由出生日期推导 |
+| API-AUTH-03/04 | `POST /api/v1/auth/login/wechat`、`/login/apple` | `AuthController` + `ChannelLoginService` | 匿名 | 换票 → 命中/建号 → 绑 `user_identity` → 签发 access + refresh → `need_bind_phone`（三渠道统一强制补绑） |
+| API-AUTH-05/06 | `POST /api/v1/auth/refresh`、`POST /api/v1/auth/logout` | `AuthController` + `RefreshTokenService` | 匿名 | refresh 一次性轮换（旧票立即失效）；登出幂等 |
+| API-ASSET-07/08 | `GET /api/v1/wallet/iap/products`、`POST /api/v1/wallet/iap/verify` | `IapController` + `IapVerifyService` | `VIEWER`/`ANCHOR` | 币数/金额服务端定价；`transaction_id` 幂等加币；退款逆向冲减 |
+
+### 5.2 装配与迁移
+
+- `DomainConfig` 新增 bean：`withdrawalPolicy` / `withdrawalService`、`taxCalculator`（`FlatTaxCalculator.placeholder()`）、`settlementReconciler`、`settlementSource`（`EmptySettlementSource`）、`realnameVerifier` / `realnameService`、`refreshTokenService`、`channelIdentityProvider` / `channelLoginService`、`iapReceiptVerifier` / `iapVerifyService`、`adminUserService` / `adminRoomService` / `giftAdminService` / `catalogAdminService` / `financeAdminService`；`auditRecorder` 升为 4 参（注入 `OperatorLookup`）。
+- `db/migration/V4__admin_console.sql`：`user.ban_reason` / `banned_at`、`user_auth` 实名列（`real_name` / `fail_reason` / `attempt_count`）、`live_category.restricted`、`banner`、`invoice`、`withdrawal`（`tax_mode` / `period` / `bank_account_masked` / `bank_name_match` / `net_amount_fen` / `paid_at`）、`refresh_token`。
+
+### 5.3 增量 5 偏差（与契约 / 前端 mock）
+
+| # | 项 | 口径 | 处理 |
+| --- | --- | --- | --- |
+| e | `AdminRoomRow.locked_by` | 前端 mock 为「房间级锁」；后端为 `CLAIMED` 任务认领人的聚合 | 语义对齐（「当前被谁持锁」），触发实体不同（任务级）；已由 Leader 确认 |
+| f | `GET /admin/users` 的 `phone_masked` | 仅存 `phone_hash`(SHA-256) + 不可解密 `phone_enc` | 按哈希「前 3 + **** + 后 4」脱敏展示（**非真实号码**，见已知限制 15） |
+| g | `PATCH /admin/banners/{id}` | 契约「前端提交完整对象」 | **整行覆盖**（非字段级 merge，见已知限制 16） |
+| h | 登录响应体 | 契约 §4.1 为内嵌 `user` 对象 | 返回 `{access_token, refresh_token, expire_in, user_id, need_bind_phone}`（沿用基线口径，未改以免破坏已对接链路） |
+| i | `WithdrawalPage`（前端 `extends PageResult`） | `PageResult` 为 `final` 不可继承 | 提现队列改用独立 DTO 平铺 `{list,total,page,size,anchor_tax_mode,minimum_fen}` |
+
+### 5.4 增量 5 实测（隔离构建 `--offline --no-build-cache`，排除缓存回放）
+
+```
+./gradlew clean check bootJar
+→ -- specs: 71, checks: 563, failed specs: 0
+→ RESULT: PASS (all specs green)     BUILD SUCCESSFUL (8 tasks executed)
+→ build/libs/mars-live-backend-0.1.0-SNAPSHOT.jar = 39,209,106 B
+```
+
+新增 `AdminSpecs`：**8 spec / 116 checks**（用户 / 房间 / 礼物 / 类目运营位 / 财务 / 实名 / 会话 / IAP）。
 
 ## 可复跑命令与结果
 
@@ -198,7 +251,9 @@ java -cp build/classes com.mars.testkit.AllSpecs
 6. **增量 2 已修正增量 1 的一处设计问题**：`WithdrawalService` 原先在内存里保存提现单，现改为经 `WithdrawalOrderRepository` 持久化。
 7. **个税为占位实现**（`PENDING-OP-23`），非税务结论，上线前必须替换。
 8. **`API-ADM-29` 审计用显式 `AuditRecorder` 调用，非 AOP**：工程当前**未引入 `spring-boot-starter-aop`**，故未做注解切面，改由各处置/配置服务在同事务内**显式记录**（`admin_operation_log`）。契约对「写审计」是行为要求，未规定实现方式；后续若引入 AOP 可平滑收敛。
-9. **审计「操作人」落 `userId`（字符串），无昵称**：`JwtClaims` **不含 `name`/`nickname` 声明**（仅 `userId`/`roles`/时间），故 `AdminActor.name()` 取 `String.valueOf(userId)`；前端 `contract.ts` 的 `operator_name` 需要真实昵称时，须在 JWT 或用户查询层补昵称来源（增量 5 与用户管理一并处理）。
+9. **~~审计「操作人」落 `userId`，无昵称~~ 已于增量 5 闭合**：`AuditRecorder` 增加 `OperatorLookup` 装配位，经 `UserAccountRepository.nicknameOf()`（`user.nickname`）解析真实昵称覆盖入参；查不到时保留 `userId` 字符串（3 参构造 = `NO_LOOKUP` 空实现，供既有测试复用）。`AdminSpecs` 断言审计行 `operator_name` 为昵称而非 ID。
 10. **机审回调字段映射为占位**：`ModerationWebhookController` 解析 CSS 回调字段（`eventId`/`confidence`/`ruleId`/`snapshotUrl` 等）按 S2a §4.10 语义实现，但**未连真实 CSS 回调样本**比对（无外网沙箱）；接入联调前需以真实报文校准字段名与嵌套层级。
 11. **`/webhook/**` 有意绕过 RBAC/幂等**：`RbacInterceptor` / `RequireIdempotencyKey` 只注册在 `/api/**`；回调安全由上表 §3.2 的**验签**保证（机审回调当前无验签，见 10）。
-12. **增量 5 待办（与前端 mock 已实现的端点差集）**：`API-ADM-01/02/03`（用户）、`API-ADM-04`（房间列表，届时消费 `locked_by`）、`API-ADM-14/15/16`（礼物）、`API-ADM-17/18`（类目）、`API-ADM-19`（运营位）、`API-ADM-21…28`（财务：对账/提现审核/发票/收益）、实名提交真实化、渠道登录、IAP 校验端点、会话 refresh/logout。
+12. **~~增量 5 待办（与前端 mock 的端点差集）~~ 已交付（见 §5）**：`API-ADM-01/02/03`（用户）、`API-ADM-04`（房间列表，**已消费 `locked_by`**）、`API-ADM-14/15/16`（礼物）、`API-ADM-17/18`（类目）、`API-ADM-19`（运营位）、`API-ADM-21…28`（财务：账单/月结/提现/对账/发票）、实名提交（API-AUTH-10/11）、渠道登录（API-AUTH-03/04）、IAP 校验（API-ASSET-07/08）、会话 refresh/logout（API-AUTH-05/06）。契约同步升 **v1.3**（新增 `API-ADM-30` 原因码字典；申诉时限由 `+7d` 硬编码改为引用 `sys_config.appeal_days`）。
+13. **增量 5 新增的占位实现（生产 profile 下不装配）**：`PlaceholderRealnameVerifier`（OP-5 云实名）、`PlaceholderChannelIdentityProvider`（微信 `code2session` / Apple 验签）、`PlaceholderIapReceiptVerifier`（JWS 验签 + App Store Server API）、`EmptySettlementSource`（月结取数）。接口与流程完整，替换点单一；详见契约 §9 已知限制 11–14。
+14. **增量 5 的运行时验证边界未变**：仍为**编译 + 零依赖 spec**级；`SpringApplication.run`、Flyway V1–V4、MyBatis SQL 未在真实 MySQL 复跑（V4 未被 MARS-2 的 34 表实测覆盖）。
