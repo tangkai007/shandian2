@@ -25,12 +25,38 @@ import com.mars.common.ErrorCode;
 import com.mars.common.support.OrderNoGenerator;
 import com.mars.common.tx.Snapshotable;
 import com.mars.earning.WithdrawalOrder;
+import com.mars.moderation.AdminOperationLog;
+import com.mars.moderation.Appeal;
+import com.mars.moderation.ContentReport;
+import com.mars.moderation.ModerationAction;
+import com.mars.moderation.ModerationEvidence;
+import com.mars.moderation.ModerationTask;
+import com.mars.moderation.ReplayRecord;
+import com.mars.moderation.RoomBrief;
+import com.mars.moderation.SysConfigEntry;
+import com.mars.moderation.TaskStatus;
+import com.mars.moderation.repo.AdminOperationLogRepository;
+import com.mars.moderation.repo.AppealRepository;
+import com.mars.moderation.repo.ContentReportRepository;
+import com.mars.moderation.repo.ModerationActionRepository;
+import com.mars.moderation.repo.ModerationEvidenceRepository;
+import com.mars.moderation.repo.ModerationTaskRepository;
+import com.mars.moderation.repo.ReplayRecordRepository;
+import com.mars.moderation.repo.RoomLookup;
+import com.mars.moderation.repo.SysConfigRepository;
+import com.mars.moderation.repo.WebhookEventRepository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 内存版仓储（测试替身）。每个 store 都是 {@link Snapshotable}，配合
@@ -400,6 +426,420 @@ public final class InMemoryStores {
         @Override
         public Optional<GiftItem> find(long giftId) {
             return Optional.ofNullable(byId.get(giftId));
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 审核域 + 平台口径 + 回放 + 审计（AC-7 / AC-9 · 契约 §4.8 / §4.9）
+    // ------------------------------------------------------------------
+
+    /** 审核任务（{@code event_id} 唯一；{@code save} 兼作插入 / 更新）。 */
+    public static final class ModerationTasks implements ModerationTaskRepository, Snapshotable {
+        private final Map<String, ModerationTask> byId = new LinkedHashMap<>();
+
+        @Override
+        public void save(ModerationTask task) {
+            byId.put(task.taskId(), task);
+        }
+
+        @Override
+        public Optional<ModerationTask> findById(String taskId) {
+            return Optional.ofNullable(byId.get(taskId));
+        }
+
+        @Override
+        public Optional<ModerationTask> findByEventId(String eventId) {
+            for (ModerationTask task : byId.values()) {
+                if (Objects.equals(task.eventId(), eventId)) {
+                    return Optional.of(task);
+                }
+            }
+            return Optional.empty();
+        }
+
+        /** 队列：风险等级升序（高在前）再按入队时间升序；{@code status=null} 取全部。 */
+        @Override
+        public List<ModerationTask> listByStatus(TaskStatus status) {
+            List<ModerationTask> result = new ArrayList<>();
+            for (ModerationTask task : byId.values()) {
+                if (status == null || task.status() == status) {
+                    result.add(task);
+                }
+            }
+            result.sort(Comparator
+                    .comparingInt((ModerationTask task) -> task.riskLevel().rank())
+                    .thenComparing(task -> task.createdAt() == null ? LocalDateTime.MIN : task.createdAt()));
+            return result;
+        }
+
+        /** 仅 {@code PENDING} 可认领（并发抢单防重）。 */
+        @Override
+        public boolean claim(String taskId, long operatorId, String operatorName) {
+            ModerationTask current = byId.get(taskId);
+            if (current == null || current.status() != TaskStatus.PENDING) {
+                return false;
+            }
+            byId.put(taskId, current.claimedBy(operatorId, operatorName));
+            return true;
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashMap<>(byId);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            byId.clear();
+            byId.putAll((Map<String, ModerationTask>) snapshot);
+        }
+    }
+
+    /** 处置记录（不可删；{@code save} 兼作插入 / 申诉解除更新）。 */
+    public static final class ModerationActions implements ModerationActionRepository, Snapshotable {
+        private final Map<String, ModerationAction> byId = new LinkedHashMap<>();
+
+        @Override
+        public void save(ModerationAction action) {
+            byId.put(action.actionId(), action);
+        }
+
+        @Override
+        public Optional<ModerationAction> findById(String actionId) {
+            return Optional.ofNullable(byId.get(actionId));
+        }
+
+        @Override
+        public List<ModerationAction> listByTask(String taskId) {
+            List<ModerationAction> result = new ArrayList<>();
+            for (ModerationAction action : byId.values()) {
+                if (Objects.equals(action.taskId(), taskId)) {
+                    result.add(action);
+                }
+            }
+            return result;
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashMap<>(byId);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            byId.clear();
+            byId.putAll((Map<String, ModerationAction>) snapshot);
+        }
+    }
+
+    /** 处置证据（{@code action_id} 唯一，不可删）。 */
+    public static final class ModerationEvidences implements ModerationEvidenceRepository, Snapshotable {
+        private final Map<String, ModerationEvidence> byActionId = new LinkedHashMap<>();
+
+        @Override
+        public void save(ModerationEvidence evidence) {
+            byActionId.put(evidence.actionId(), evidence);
+        }
+
+        @Override
+        public Optional<ModerationEvidence> findByActionId(String actionId) {
+            return Optional.ofNullable(byActionId.get(actionId));
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashMap<>(byActionId);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            byActionId.clear();
+            byActionId.putAll((Map<String, ModerationEvidence>) snapshot);
+        }
+    }
+
+    /** 用户举报。 */
+    public static final class ContentReports implements ContentReportRepository, Snapshotable {
+        private final Map<String, ContentReport> byId = new LinkedHashMap<>();
+
+        @Override
+        public void save(ContentReport report) {
+            byId.put(report.reportId(), report);
+        }
+
+        @Override
+        public Optional<ContentReport> findById(String reportId) {
+            return Optional.ofNullable(byId.get(reportId));
+        }
+
+        @Override
+        public List<ContentReport> listByStatus(ContentReport.ReportStatus status) {
+            List<ContentReport> result = new ArrayList<>();
+            for (ContentReport report : byId.values()) {
+                if (status == null || report.status() == status) {
+                    result.add(report);
+                }
+            }
+            result.sort(Comparator.comparing(report -> report.createdAt() == null
+                    ? LocalDateTime.MIN : report.createdAt()));
+            return result;
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashMap<>(byId);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            byId.clear();
+            byId.putAll((Map<String, ContentReport>) snapshot);
+        }
+    }
+
+    /** 申诉（{@code action_id} 唯一）。 */
+    public static final class Appeals implements AppealRepository, Snapshotable {
+        private final Map<String, Appeal> byId = new LinkedHashMap<>();
+
+        @Override
+        public void save(Appeal appeal) {
+            byId.put(appeal.appealId(), appeal);
+        }
+
+        @Override
+        public Optional<Appeal> findById(String appealId) {
+            return Optional.ofNullable(byId.get(appealId));
+        }
+
+        @Override
+        public Optional<Appeal> findByActionId(String actionId) {
+            for (Appeal appeal : byId.values()) {
+                if (Objects.equals(appeal.actionId(), actionId)) {
+                    return Optional.of(appeal);
+                }
+            }
+            return Optional.empty();
+        }
+
+        @Override
+        public List<Appeal> listByStatus(Appeal.AppealStatus status) {
+            List<Appeal> result = new ArrayList<>();
+            for (Appeal appeal : byId.values()) {
+                if (status == null || appeal.status() == status) {
+                    result.add(appeal);
+                }
+            }
+            result.sort(Comparator.comparing(appeal -> appeal.createdAt() == null
+                    ? LocalDateTime.MIN : appeal.createdAt()));
+            return result;
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashMap<>(byId);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            byId.clear();
+            byId.putAll((Map<String, Appeal>) snapshot);
+        }
+    }
+
+    /** 回放记录（{@code vod_file_id} 唯一）。 */
+    public static final class ReplayRecords implements ReplayRecordRepository, Snapshotable {
+        private final Map<String, ReplayRecord> byId = new LinkedHashMap<>();
+
+        @Override
+        public void save(ReplayRecord replay) {
+            byId.put(replay.replayId(), replay);
+        }
+
+        @Override
+        public Optional<ReplayRecord> findById(String replayId) {
+            return Optional.ofNullable(byId.get(replayId));
+        }
+
+        @Override
+        public Optional<ReplayRecord> findByVodFileId(String vodFileId) {
+            for (ReplayRecord replay : byId.values()) {
+                if (Objects.equals(replay.vodFileId(), vodFileId)) {
+                    return Optional.of(replay);
+                }
+            }
+            return Optional.empty();
+        }
+
+        @Override
+        public List<ReplayRecord> listByRoom(long roomId) {
+            List<ReplayRecord> result = new ArrayList<>();
+            for (ReplayRecord replay : byId.values()) {
+                if (replay.roomId() == roomId) {
+                    result.add(replay);
+                }
+            }
+            result.sort(Comparator.comparing((ReplayRecord replay) -> replay.startedAt() == null
+                    ? LocalDateTime.MIN : replay.startedAt()).reversed());
+            return result;
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashMap<>(byId);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            byId.clear();
+            byId.putAll((Map<String, ReplayRecord>) snapshot);
+        }
+    }
+
+    /** 平台口径（{@code sys_config}）：只存「键 → 覆盖值 + 备注」，类型由目录提供。 */
+    public static final class SysConfigs implements SysConfigRepository, Snapshotable {
+        private final Map<String, String> values = new LinkedHashMap<>();
+        private final Map<String, String> notes = new LinkedHashMap<>();
+
+        @Override
+        public Optional<String> get(String key) {
+            return Optional.ofNullable(values.get(key));
+        }
+
+        @Override
+        public void put(String key, String value, String description) {
+            values.put(key, value);
+            if (description != null) {
+                notes.put(key, description);
+            }
+        }
+
+        @Override
+        public List<SysConfigEntry> list() {
+            List<SysConfigEntry> result = new ArrayList<>();
+            for (Map.Entry<String, String> entry : values.entrySet()) {
+                result.add(new SysConfigEntry(entry.getKey(), null, null, entry.getValue(),
+                        notes.get(entry.getKey())));
+            }
+            return result;
+        }
+
+        @Override
+        public Object snapshot() {
+            return new Object[]{new LinkedHashMap<>(values), new LinkedHashMap<>(notes)};
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            Object[] parts = (Object[]) snapshot;
+            values.clear();
+            values.putAll((Map<String, String>) parts[0]);
+            notes.clear();
+            notes.putAll((Map<String, String>) parts[1]);
+        }
+    }
+
+    /** 后台操作审计（仅追加）。 */
+    public static final class AdminOperationLogs implements AdminOperationLogRepository, Snapshotable {
+        private final List<AdminOperationLog> logs = new ArrayList<>();
+
+        @Override
+        public void append(AdminOperationLog log) {
+            logs.add(log);
+        }
+
+        /** 按时间倒序；{@code keyword} 命中操作者 / 动作 / 目标 / 原因码 / 备注 / IP 即入选。 */
+        @Override
+        public List<AdminOperationLog> list(String keyword) {
+            List<AdminOperationLog> result = new ArrayList<>();
+            for (AdminOperationLog log : logs) {
+                if (keyword == null || keyword.isBlank() || matches(log, keyword.trim())) {
+                    result.add(log);
+                }
+            }
+            result.sort(Comparator.comparing((AdminOperationLog log) -> log.createdAt() == null
+                    ? LocalDateTime.MIN : log.createdAt()).reversed());
+            return result;
+        }
+
+        private static boolean matches(AdminOperationLog log, String keyword) {
+            return contains(log.operatorName(), keyword)
+                    || contains(log.action(), keyword)
+                    || contains(log.targetType(), keyword)
+                    || contains(log.targetLabel(), keyword)
+                    || contains(log.reasonCode(), keyword)
+                    || contains(log.remark(), keyword)
+                    || contains(log.ip(), keyword);
+        }
+
+        private static boolean contains(String value, String keyword) {
+            return value != null && value.contains(keyword);
+        }
+
+        @Override
+        public Object snapshot() {
+            return new ArrayList<>(logs);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            logs.clear();
+            logs.addAll((List<AdminOperationLog>) snapshot);
+        }
+    }
+
+    /** 回调事件幂等（主键唯一：首次 true，重复 false）。 */
+    public static final class WebhookEvents implements WebhookEventRepository, Snapshotable {
+        private final Set<String> seen = new LinkedHashSet<>();
+
+        @Override
+        public boolean register(String eventId, String source) {
+            return seen.add(eventId);
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashSet<>(seen);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            seen.clear();
+            seen.addAll((Set<String>) snapshot);
+        }
+    }
+
+    /** 直播间查询（{@code live_room} ⋈ {@code user} 的内存替身）。 */
+    public static final class Rooms implements RoomLookup, Snapshotable {
+        private final Map<Long, RoomBrief> byId = new LinkedHashMap<>();
+
+        public void seed(RoomBrief room) {
+            byId.put(room.roomId(), room);
+        }
+
+        @Override
+        public Optional<RoomBrief> findById(long roomId) {
+            return Optional.ofNullable(byId.get(roomId));
+        }
+
+        @Override
+        public Object snapshot() {
+            return new LinkedHashMap<>(byId);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void restore(Object snapshot) {
+            byId.clear();
+            byId.putAll((Map<Long, RoomBrief>) snapshot);
         }
     }
 

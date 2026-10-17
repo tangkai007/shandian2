@@ -55,6 +55,10 @@ mars:
     sensitive-word:
       # 词表重建间隔（运营改词后的生效延迟上限）
       reload-seconds: 300
+  moderation:
+    # 平台口径兜底：DB(sys_config) 未覆盖时使用；正常路径一律读 sys_config，改口径不发版。
+    appeal-days: 7
+    replay-retention-days: 30
   pay:
     # 三方验签凭据：只经环境变量注入，不入仓。
     # 未配置时验证器处于 fail-closed（能启动，但任何回调一律拒绝）。

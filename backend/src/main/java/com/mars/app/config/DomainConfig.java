@@ -21,11 +21,30 @@ import com.mars.interaction.mapper.SensitiveWordMapper;
 import com.mars.interaction.service.CompositeSensitiveWordSource;
 import com.mars.interaction.service.ResourceSensitiveWordSource;
 import com.mars.interaction.service.SensitiveWordSource;
+import com.mars.moderation.AppealService;
+import com.mars.moderation.AuditRecorder;
+import com.mars.moderation.ModerationActionService;
+import com.mars.moderation.ModerationQueueService;
+import com.mars.moderation.PlatformConfig;
+import com.mars.moderation.ReplayService;
+import com.mars.moderation.ReportService;
+import com.mars.moderation.SysConfigService;
+import com.mars.moderation.repo.AdminOperationLogRepository;
+import com.mars.moderation.repo.AppealRepository;
+import com.mars.moderation.repo.ContentReportRepository;
+import com.mars.moderation.repo.ModerationActionRepository;
+import com.mars.moderation.repo.ModerationEvidenceRepository;
+import com.mars.moderation.repo.ModerationTaskRepository;
+import com.mars.moderation.repo.ReplayRecordRepository;
+import com.mars.moderation.repo.RoomLookup;
+import com.mars.moderation.repo.SysConfigRepository;
+import com.mars.moderation.repo.WebhookEventRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
@@ -111,5 +130,90 @@ public class DomainConfig {
                                            OrderNoGenerator orderNoGenerator) {
         return new RechargeService(rechargeOrderRepository, walletAccountRepository,
                 walletLedgerRepository, coinPoolRepository, unitOfWork, orderNoGenerator);
+    }
+
+    // ------------------------------------------------------------------
+    // 审核域 + 平台口径 + 回放 + 审计（AC-7 / AC-9 · 契约 §4.8 / §4.9）
+    // ------------------------------------------------------------------
+
+    /**
+     * 平台口径读取：{@code appeal_days} / {@code replay_retention_days} 存 {@code sys_config}，
+     * 运营可改、<b>不硬编码</b>；{@code fallback} 仅用于 DB 未覆盖时兜底（默认 7 / 30）。
+     */
+    @Bean
+    public PlatformConfig platformConfig(SysConfigRepository sysConfigRepository,
+                                         @Value("${mars.moderation.appeal-days:7}") int appealDaysFallback,
+                                         @Value("${mars.moderation.replay-retention-days:30}") int replayRetentionDaysFallback) {
+        return new PlatformConfig(sysConfigRepository, appealDaysFallback, replayRetentionDaysFallback);
+    }
+
+    @Bean
+    public AuditRecorder auditRecorder(AdminOperationLogRepository adminOperationLogRepository,
+                                       OrderNoGenerator orderNoGenerator,
+                                       Clock clock) {
+        return new AuditRecorder(adminOperationLogRepository, orderNoGenerator, clock);
+    }
+
+    @Bean
+    public ModerationQueueService moderationQueueService(ModerationTaskRepository moderationTaskRepository,
+                                                         WebhookEventRepository webhookEventRepository,
+                                                         RoomLookup roomLookup,
+                                                         UnitOfWork unitOfWork,
+                                                         OrderNoGenerator orderNoGenerator,
+                                                         Clock clock) {
+        return new ModerationQueueService(moderationTaskRepository, webhookEventRepository, roomLookup,
+                unitOfWork, orderNoGenerator, clock);
+    }
+
+    @Bean
+    public ModerationActionService moderationActionService(ModerationTaskRepository moderationTaskRepository,
+                                                           ModerationActionRepository moderationActionRepository,
+                                                           ModerationEvidenceRepository moderationEvidenceRepository,
+                                                           RoomLookup roomLookup,
+                                                           PlatformConfig platformConfig,
+                                                           UnitOfWork unitOfWork,
+                                                           OrderNoGenerator orderNoGenerator,
+                                                           AuditRecorder auditRecorder,
+                                                           Clock clock) {
+        return new ModerationActionService(moderationTaskRepository, moderationActionRepository,
+                moderationEvidenceRepository, roomLookup, platformConfig, unitOfWork, orderNoGenerator,
+                auditRecorder, clock);
+    }
+
+    @Bean
+    public ReportService reportService(ContentReportRepository contentReportRepository,
+                                       UnitOfWork unitOfWork,
+                                       OrderNoGenerator orderNoGenerator,
+                                       AuditRecorder auditRecorder,
+                                       Clock clock) {
+        return new ReportService(contentReportRepository, unitOfWork, orderNoGenerator, auditRecorder, clock);
+    }
+
+    @Bean
+    public AppealService appealService(AppealRepository appealRepository,
+                                       ModerationActionRepository moderationActionRepository,
+                                       PlatformConfig platformConfig,
+                                       UnitOfWork unitOfWork,
+                                       OrderNoGenerator orderNoGenerator,
+                                       AuditRecorder auditRecorder,
+                                       Clock clock) {
+        return new AppealService(appealRepository, moderationActionRepository, platformConfig,
+                unitOfWork, orderNoGenerator, auditRecorder, clock);
+    }
+
+    @Bean
+    public ReplayService replayService(ReplayRecordRepository replayRecordRepository,
+                                       PlatformConfig platformConfig,
+                                       UnitOfWork unitOfWork,
+                                       OrderNoGenerator orderNoGenerator,
+                                       Clock clock) {
+        return new ReplayService(replayRecordRepository, platformConfig, unitOfWork, orderNoGenerator, clock);
+    }
+
+    @Bean
+    public SysConfigService sysConfigService(SysConfigRepository sysConfigRepository,
+                                             UnitOfWork unitOfWork,
+                                             AuditRecorder auditRecorder) {
+        return new SysConfigService(sysConfigRepository, unitOfWork, auditRecorder);
     }
 }
