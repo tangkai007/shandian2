@@ -2,21 +2,57 @@ package com.mars.app.config;
 
 import com.mars.account.MinorLimitConfig;
 import com.mars.account.MinorLimitPolicy;
+import com.mars.account.service.ChannelIdentityProvider;
+import com.mars.account.service.PlaceholderChannelIdentityProvider;
+import com.mars.account.service.PlaceholderRealnameVerifier;
+import com.mars.account.service.RealnameVerifier;
+import com.mars.admin.repo.AdminRoomRepository;
+import com.mars.admin.repo.AdminWithdrawalQuery;
+import com.mars.admin.repo.CatalogRepository;
+import com.mars.admin.repo.GiftAdminRepository;
+import com.mars.admin.repo.IdentityRepository;
+import com.mars.admin.repo.InvoiceRepository;
+import com.mars.admin.repo.RealnameRepository;
+import com.mars.admin.repo.RefreshTokenRepository;
+import com.mars.admin.repo.SettlementBillRepository;
+import com.mars.admin.repo.SettlementSource;
+import com.mars.admin.repo.UserAccountRepository;
+import com.mars.admin.service.AdminRoomService;
+import com.mars.admin.service.AdminUserService;
+import com.mars.admin.service.CatalogAdminService;
+import com.mars.admin.service.ChannelLoginService;
+import com.mars.admin.service.EmptySettlementSource;
+import com.mars.admin.service.FinanceAdminService;
+import com.mars.admin.service.GiftAdminService;
+import com.mars.admin.service.RealnameService;
+import com.mars.admin.service.RefreshTokenService;
+import com.mars.admin.service.SettlementReconciler;
 import com.mars.asset.gift.GiftCatalog;
 import com.mars.asset.gift.GiftResultCache;
 import com.mars.asset.gift.GiftSendService;
+import com.mars.asset.iap.IapProductCatalog;
+import com.mars.asset.iap.IapReceiptVerifier;
+import com.mars.asset.iap.IapVerifyService;
+import com.mars.asset.iap.PlaceholderIapReceiptVerifier;
 import com.mars.asset.recharge.RechargeService;
 import com.mars.asset.repo.CoinPoolRepository;
 import com.mars.asset.repo.EarningAccountRepository;
 import com.mars.asset.repo.EarningLedgerRepository;
 import com.mars.asset.repo.GiftOrderRepository;
+import com.mars.asset.repo.IapTransactionRepository;
 import com.mars.asset.repo.RechargeOrderRepository;
 import com.mars.asset.repo.WalletAccountRepository;
 import com.mars.asset.repo.WalletLedgerRepository;
+import com.mars.asset.repo.WithdrawalOrderRepository;
+import com.mars.common.security.JwtTokenService;
 import com.mars.common.support.OrderNoGenerator;
 import com.mars.common.tx.SpringUnitOfWork;
 import com.mars.common.tx.UnitOfWork;
+import com.mars.earning.WithdrawalPolicy;
+import com.mars.earning.WithdrawalService;
 import com.mars.earning.settlement.SettlementCalculator;
+import com.mars.earning.settlement.TaxCalculator;
+import com.mars.earning.tax.FlatTaxCalculator;
 import com.mars.interaction.mapper.SensitiveWordMapper;
 import com.mars.interaction.service.CompositeSensitiveWordSource;
 import com.mars.interaction.service.ResourceSensitiveWordSource;
@@ -35,6 +71,7 @@ import com.mars.moderation.repo.ContentReportRepository;
 import com.mars.moderation.repo.ModerationActionRepository;
 import com.mars.moderation.repo.ModerationEvidenceRepository;
 import com.mars.moderation.repo.ModerationTaskRepository;
+import com.mars.moderation.repo.OperatorLookup;
 import com.mars.moderation.repo.ReplayRecordRepository;
 import com.mars.moderation.repo.RoomLookup;
 import com.mars.moderation.repo.SysConfigRepository;
@@ -147,11 +184,16 @@ public class DomainConfig {
         return new PlatformConfig(sysConfigRepository, appealDaysFallback, replayRetentionDaysFallback);
     }
 
+    /**
+     * 审计记录器：{@code OperatorLookup} 由 {@link UserAccountRepository} 提供（{@code user.nickname}），
+     * 使审计日志的操作者展示名由用户 ID 解析为真实昵称（闭合「已知限制 9」）。
+     */
     @Bean
     public AuditRecorder auditRecorder(AdminOperationLogRepository adminOperationLogRepository,
                                        OrderNoGenerator orderNoGenerator,
-                                       Clock clock) {
-        return new AuditRecorder(adminOperationLogRepository, orderNoGenerator, clock);
+                                       Clock clock,
+                                       OperatorLookup operatorLookup) {
+        return new AuditRecorder(adminOperationLogRepository, orderNoGenerator, clock, operatorLookup);
     }
 
     @Bean
@@ -215,5 +257,149 @@ public class DomainConfig {
                                              UnitOfWork unitOfWork,
                                              AuditRecorder auditRecorder) {
         return new SysConfigService(sysConfigRepository, unitOfWork, auditRecorder);
+    }
+
+    // ------------------------------------------------------------------
+    // 账号 / 实名 / 渠道登录（契约 §4.1 · 增量 5）
+    // ------------------------------------------------------------------
+
+    /**
+     * 实名核验适配（占位）：真实实现须对接第三方云实名（OP-5）。
+     * 占位口径：姓名非空且证件号长度 ≥ 15 视为通过，否则 {@code ID_MISMATCH}。
+     */
+    @Bean
+    public RealnameVerifier realnameVerifier() {
+        return new PlaceholderRealnameVerifier();
+    }
+
+    @Bean
+    public RealnameService realnameService(RealnameRepository realnameRepository,
+                                           RealnameVerifier realnameVerifier,
+                                           Clock clock) {
+        return new RealnameService(realnameRepository, realnameVerifier, clock);
+    }
+
+    @Bean
+    public RefreshTokenService refreshTokenService(RefreshTokenRepository refreshTokenRepository,
+                                                   JwtTokenService jwtTokenService,
+                                                   Clock clock) {
+        return new RefreshTokenService(refreshTokenRepository, jwtTokenService, clock);
+    }
+
+    /** 渠道换票适配（占位）：真实实现须对接微信 {@code code2session} / Apple 验签。 */
+    @Bean
+    public ChannelIdentityProvider channelIdentityProvider() {
+        return new PlaceholderChannelIdentityProvider();
+    }
+
+    @Bean
+    public ChannelLoginService channelLoginService(ChannelIdentityProvider channelIdentityProvider,
+                                                   IdentityRepository identityRepository,
+                                                   UserAccountRepository userAccountRepository,
+                                                   RefreshTokenService refreshTokenService,
+                                                   UnitOfWork unitOfWork) {
+        return new ChannelLoginService(channelIdentityProvider, identityRepository,
+                userAccountRepository, refreshTokenService, unitOfWork);
+    }
+
+    // ------------------------------------------------------------------
+    // 提现 / 结算 / 税务（契约 §4.7 · §4.9 API-ADM-21…28 · AC-8）
+    // ------------------------------------------------------------------
+
+    @Bean
+    public WithdrawalPolicy withdrawalPolicy() {
+        return new WithdrawalPolicy();
+    }
+
+    @Bean
+    public WithdrawalService withdrawalService(WithdrawalPolicy withdrawalPolicy,
+                                               EarningAccountRepository earningAccountRepository,
+                                               EarningLedgerRepository earningLedgerRepository,
+                                               WithdrawalOrderRepository withdrawalOrderRepository,
+                                               UnitOfWork unitOfWork,
+                                               OrderNoGenerator orderNoGenerator) {
+        return new WithdrawalService(withdrawalPolicy, earningAccountRepository, earningLedgerRepository,
+                withdrawalOrderRepository, unitOfWork, orderNoGenerator);
+    }
+
+    /** 个税计算占位（OP-23 待人类定值）：统一 6% 扁率，替换点见 {@link FlatTaxCalculator}。 */
+    @Bean
+    public TaxCalculator taxCalculator() {
+        return FlatTaxCalculator.placeholder();
+    }
+
+    @Bean
+    public SettlementReconciler settlementReconciler() {
+        return new SettlementReconciler();
+    }
+
+    /** 月结取数空来源（占位）：无运行时来源 → {@code generate} 返回 {@code generated=false}。 */
+    @Bean
+    public SettlementSource settlementSource() {
+        return new EmptySettlementSource();
+    }
+
+    // ------------------------------------------------------------------
+    // IAP（契约 §4.6 API-ASSET-07/08 · OP-11）
+    // ------------------------------------------------------------------
+
+    @Bean
+    public IapReceiptVerifier iapReceiptVerifier(IapProductCatalog iapProductCatalog) {
+        return new PlaceholderIapReceiptVerifier(iapProductCatalog);
+    }
+
+    @Bean
+    public IapVerifyService iapVerifyService(IapTransactionRepository iapTransactionRepository,
+                                             WalletAccountRepository walletAccountRepository,
+                                             WalletLedgerRepository walletLedgerRepository,
+                                             CoinPoolRepository coinPoolRepository,
+                                             UnitOfWork unitOfWork) {
+        return new IapVerifyService(iapTransactionRepository, walletAccountRepository,
+                walletLedgerRepository, coinPoolRepository, unitOfWork);
+    }
+
+    // ------------------------------------------------------------------
+    // 后台管理服务（契约 §4.9 · API-ADM-01…28）
+    // ------------------------------------------------------------------
+
+    @Bean
+    public AdminUserService adminUserService(UserAccountRepository userAccountRepository,
+                                             AuditRecorder auditRecorder,
+                                             Clock clock) {
+        return new AdminUserService(userAccountRepository, auditRecorder, clock);
+    }
+
+    @Bean
+    public AdminRoomService adminRoomService(AdminRoomRepository adminRoomRepository,
+                                             ModerationTaskRepository moderationTaskRepository) {
+        return new AdminRoomService(adminRoomRepository, moderationTaskRepository);
+    }
+
+    @Bean
+    public GiftAdminService giftAdminService(GiftAdminRepository giftAdminRepository,
+                                             AuditRecorder auditRecorder) {
+        return new GiftAdminService(giftAdminRepository, auditRecorder);
+    }
+
+    @Bean
+    public CatalogAdminService catalogAdminService(CatalogRepository catalogRepository,
+                                                   AuditRecorder auditRecorder) {
+        return new CatalogAdminService(catalogRepository, auditRecorder);
+    }
+
+    @Bean
+    public FinanceAdminService financeAdminService(SettlementBillRepository settlementBillRepository,
+                                                   InvoiceRepository invoiceRepository,
+                                                   AdminWithdrawalQuery adminWithdrawalQuery,
+                                                   WithdrawalService withdrawalService,
+                                                   SettlementSource settlementSource,
+                                                   PlatformConfig platformConfig,
+                                                   TaxCalculator taxCalculator,
+                                                   SettlementCalculator settlementCalculator,
+                                                   SettlementReconciler settlementReconciler,
+                                                   AuditRecorder auditRecorder) {
+        return new FinanceAdminService(settlementBillRepository, invoiceRepository, adminWithdrawalQuery,
+                withdrawalService, settlementSource, platformConfig, taxCalculator,
+                settlementCalculator, settlementReconciler, auditRecorder);
     }
 }

@@ -56,6 +56,22 @@ public final class PlatformConfig {
                 || "on".equalsIgnoreCase(v.trim())).orElse(fallback);
     }
 
+    /** 小数口径（如分成率 {@code anchor_share_rate}、平台税率 {@code platform_tax_rate}）；解析失败回落兜底。 */
+    public java.math.BigDecimal decimalValue(String key, java.math.BigDecimal fallback) {
+        return config.get(key).flatMap(PlatformConfig::parseDecimal).orElse(fallback);
+    }
+
+    private static Optional<java.math.BigDecimal> parseDecimal(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(new java.math.BigDecimal(raw.trim()));
+        } catch (NumberFormatException malformed) {
+            return Optional.empty();
+        }
+    }
+
     private static Optional<Integer> parseInt(String raw) {
         if (raw == null || raw.isBlank()) {
             return Optional.empty();

@@ -1,6 +1,7 @@
 package com.mars.testkit;
 
 import com.mars.spec.AccountSpecs;
+import com.mars.spec.AdminSpecs;
 import com.mars.spec.CommonSpecs;
 import com.mars.spec.EarningSpecs;
 import com.mars.spec.FundSpecs;
@@ -33,6 +34,7 @@ public final class AllSpecs {
         EarningSpecs.register(registry);
         LiveSpecs.register(registry);
         ModerationSpecs.register(registry);
+        AdminSpecs.register(registry);
 
         List<Registry.Named> specs = registry.named();
         int totalChecks = 0;
