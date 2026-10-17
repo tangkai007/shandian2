@@ -7,6 +7,7 @@ import com.mars.spec.EarningSpecs;
 import com.mars.spec.FundSpecs;
 import com.mars.spec.InteractionSpecs;
 import com.mars.spec.LiveSpecs;
+import com.mars.spec.MapperPairingSpecs;
 import com.mars.spec.ModerationSpecs;
 import com.mars.spec.PayVerifierSpecs;
 import com.mars.spec.SensitiveWordSpecs;
@@ -35,6 +36,7 @@ public final class AllSpecs {
         LiveSpecs.register(registry);
         ModerationSpecs.register(registry);
         AdminSpecs.register(registry);
+        MapperPairingSpecs.register(registry);
 
         List<Registry.Named> specs = registry.named();
         int totalChecks = 0;
