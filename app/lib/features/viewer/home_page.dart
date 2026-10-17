@@ -29,7 +29,7 @@ class _HomePageState extends State<HomePage> {
   AsyncState<List<RoomCard>> _rooms = const AsyncIdle<List<RoomCard>>();
   List<LiveCategory> _categories = const <LiveCategory>[];
   String _feed = 'hot';
-  String _sort = 'hot';
+  final String _sort = 'hot';
   int? _categoryId;
 
   bool _bootstrapped = false;
