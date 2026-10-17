@@ -1,0 +1,10 @@
+# 行尾规范化：Windows 检出（core.autocrlf=true）默认会把文本转成 CRLF，
+# 这会让容器内的 Gradle Wrapper 因 shebang `#!/bin/sh\r` 而无法执行（`./gradlew: not found`）。
+# 固定 wrapper 与脚本为 LF，保证「Windows 检出 + Docker 构建」可复现。
+
+# Gradle Wrapper（*nix）
+backend/gradlew text eol=lf
+# Gradle Wrapper（Windows 批处理）
+backend/gradlew.bat text eol=crlf
+# 其余 shell 脚本
+*.sh text eol=lf

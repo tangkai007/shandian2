@@ -1,0 +1,105 @@
+# 闪电AI2.0 · 瞬间直播 —— 本地一键演示编排（MARS-2）
+#
+# 作用：在单机上以 Docker 起「MySQL + Redis + 后端(local 档) + 运营后台」，用于开发验证与演示。
+# 范围：仅本地演示。不写死任何真实密钥——口令一律经环境变量注入，示例值为本地占位。
+# 说明：后端以前端契约不变，仅以 SPRING_PROFILES_ACTIVE=local 运行（允许开发验证码等占位实现）。
+#
+# 起 / 停 / 重置与端口、环境变量清单见同目录 README.md。
+
+name: mars-live
+
+services:
+  # ---------------------------------------------------------------- MySQL 8
+  mysql:
+    image: mysql:8
+    container_name: mars-mysql
+    restart: unless-stopped
+    environment:
+      # 仅本地演示用占位口令；真实环境请经 .env / 环境变量覆盖。
+      MYSQL_ROOT_PASSWORD: ${MARS_DB_PASSWORD:-mars_local_dev}
+      # 初始化即建库，后端 Flyway 在该库上应用 db/migration/V1..V3。
+      MYSQL_DATABASE: ${MARS_DB_NAME:-mars_live}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mars-mysql-data:/var/lib/mysql
+    ports:
+      - "${MARS_DB_HOST_PORT:-3306}:3306"
+    healthcheck:
+      # 走 TCP(-h 127.0.0.1)：初始化阶段的临时实例只在 socket 上，故健康即代表可对外服务。
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ---------------------------------------------------------------- Redis 7
+  redis:
+    image: redis:7
+    container_name: mars-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - mars-redis-data:/data
+    ports:
+      - "${MARS_REDIS_HOST_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  # ------------------------------------------------- 后端（仓库 deploy/backend.Dockerfile）
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+    image: mars-live/backend:local
+    container_name: mars-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # 演示走 local 档：允许占位实现（开发验证码 000000 等），无需真实三方凭据。
+      SPRING_PROFILES_ACTIVE: local
+      MARS_SERVER_PORT: "8080"
+      MARS_DB_HOST: mysql
+      MARS_DB_PORT: "3306"
+      MARS_DB_NAME: ${MARS_DB_NAME:-mars_live}
+      MARS_DB_USER: root
+      MARS_DB_PASSWORD: ${MARS_DB_PASSWORD:-mars_local_dev}
+      MARS_REDIS_HOST: redis
+      MARS_REDIS_PORT: "6379"
+      MARS_DB_MIGRATION_DIR: /workspace/db/migration
+    volumes:
+      # 按 deploy/backend.Dockerfile 的既定约定（MARS_DB_MIGRATION_DIR=/workspace/db/migration）
+      # 挂载仓库根 db/migration：改迁移脚本无需重建镜像。
+      - ../db/migration:/workspace/db/migration:ro
+    ports:
+      - "${MARS_HTTP_PORT:-8080}:8080"
+
+  # ------------------------------- 运营后台（Node 构建 → Nginx 静态托管）
+  admin:
+    build:
+      context: ..
+      dockerfile: deploy/admin.Dockerfile
+      args:
+        # 默认走内存 mock，无后端也能看界面；切真实网关：VITE_USE_MOCK=false。
+        VITE_USE_MOCK: ${VITE_USE_MOCK:-true}
+        VITE_API_BASE: ${VITE_API_BASE:-/api/v1}
+    image: mars-live/admin:local
+    container_name: mars-admin
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${MARS_ADMIN_PORT:-5174}:80"
+
+volumes:
+  mars-mysql-data:
+  mars-redis-data:
