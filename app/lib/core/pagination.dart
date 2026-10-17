@@ -17,7 +17,7 @@ class PageResult<T> {
 
   bool get isEmpty => list.isEmpty;
 
-  static PageResult<T> fromJson<T>(JsonMap json, T Function(JsonMap item) parse) =>
+  factory PageResult.fromJson(JsonMap json, T Function(JsonMap item) parse) =>
       PageResult<T>(
         list: Json.list(json['list'])
             .map((Object? e) => parse(Json.map(e)))

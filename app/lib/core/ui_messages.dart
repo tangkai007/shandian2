@@ -51,7 +51,7 @@ class UiMessages {
       case ErrorCodes.invalidParam:
         // 敏感词命中：contract §2.7 备注 —— `field=content` + `reason=敏感词`。
         if (reason != null && reason.isNotEmpty) {
-          return '内容不合规（${reason}），请修改后重试。';
+          return '内容不合规（$reason），请修改后重试。';
         }
         return field == null || field.isEmpty ? '提交内容不合法，请检查后重试。' : '「$field」填写不合法，请检查后重试。';
       case ErrorCodes.unauthenticated:
