@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MARS-4 · AI 直播助播 MVP — UI 设计原型 v0.1</title>
+<style>
+  :root{
+    --bg-base:#0F1216; --bg-surface:#161B22; --bg-surface-2:#1C232C; --bg-inset:#0B0E12;
+    --bd-subtle:#2A323D; --bd-strong:#3A4552;
+    --tx-1:#E6EDF3; --tx-2:#9BA7B4; --tx-3:#5C6773;
+    --brand:#3B82F6; --brand-h:#2563EB; --brand-a:#1D4ED8;
+    --ok:#22C55E; --warn:#F59E0B; --err:#EF4444; --info:#38BDF8;
+    --comp:#A855F7; --stop:#DC2626;
+    --r-sm:4px; --r-md:6px; --r-lg:10px; --r-pill:999px;
+    --sh-sm:0 1px 2px rgba(0,0,0,.4); --sh-md:0 4px 12px rgba(0,0,0,.45); --sh-lg:0 12px 32px rgba(0,0,0,.55);
+    --mono:Consolas,"JetBrains Mono",monospace;
+    --ui:system-ui,"Microsoft YaHei","PingFang SC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg-base);color:var(--tx-1);font:13px/20px var(--ui);padding:32px 24px 80px}
+  .page{max-width:1440px;margin:0 auto}
+  h1{font-size:24px;line-height:32px;font-weight:700;margin:0 0 6px}
+  h2{font-size:18px;line-height:26px;font-weight:600;margin:44px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--bd-subtle)}
+  h3{font-size:14px;line-height:22px;font-weight:600;margin:24px 0 10px;color:var(--tx-1)}
+  .sub{color:var(--tx-2);margin:0 0 4px}
+  .meta{color:var(--tx-3);font-size:12px}
+  .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--r-pill);border:1px solid var(--bd-strong);color:var(--tx-2)}
+  .tag.full{color:#93C5FD;border-color:#1D4ED8;background:rgba(59,130,246,.12)}
+  .tag.single{color:#67E8F9;border-color:#0E7490;background:rgba(56,189,248,.12)}
+  .tag.fuzzy{color:#D8B4FE;border-color:#7E22CE;background:rgba(168,85,247,.12)}
+  .label{font-size:11px;font-weight:500;letter-spacing:.4px;text-transform:uppercase;color:var(--tx-3);margin:26px 0 10px}
+
+  /* ---------- tokens ---------- */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .sw{background:var(--bg-surface);border:1px solid var(--bd-subtle);border-radius:var(--r-md);overflow:hidden}
+  .sw .chip{height:52px}
+  .sw .cap{padding:8px 10px;font-size:11px;color:var(--tx-2)}
+  .sw .cap b{display:block;color:var(--tx-1);font-weight:500;font-size:12px}
+  .scales{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;color:var(--tx-2);font-size:12px}
+  .scale-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .box{background:var(--brand);border-radius:2px;opacity:.85}
+
+  /* ---------- generic app chrome ---------- */
+  .frame{background:var(--bg-base);border:1px solid var(--bd-strong);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-lg);margin-top:14px}
+  .titlebar{display:flex;align-items:center;gap:8px;background:var(--bg-surface);border-bottom:1px solid var(--bd-subtle);padding:0 12px;height:34px}
+  .dot{width:10px;height:10px;border-radius:50%;background:#3A4552}
+  .titlebar .t{font-size:12px;color:var(--tx-2);margin-left:6px}
+  .topbar{display:flex;align-items:center;gap:12px;height:48px;padding:0 16px;background:var(--bg-surface);border-bottom:1px solid var(--bd-subtle)}
+  .appname{font-size:14px;font-weight:600}
+  .ver{font-size:11px;color:var(--tx-3)}
+  .aibadge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-pill);background:linear-gradient(135deg,#7C3AED,#3B82F6);color:#fff;font-size:11px;font-weight:700;letter-spacing:.5px;box-shadow:0 2px 8px rgba(124,58,237,.4)}
+  .spacer{flex:1}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:var(--r-pill);border:1px solid var(--bd-strong);color:var(--tx-2)}
+  .pill.ok{color:var(--ok);border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08)}
+  .pill.warn{color:var(--warn);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08)}
+  .pill.err{color:var(--err);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)}
+  .pill.info{color:var(--info);border-color:rgba(56,189,248,.4);background:rgba(56,189,248,.08)}
+  .pill.gray{color:var(--tx-2)}
+  .dotc{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:var(--r-md);border:1px solid var(--bd-strong);background:var(--bg-surface-2);color:var(--tx-1);font:13px var(--ui);cursor:default}
+  .btn.sm{height:28px;padding:0 10px;font-size:12px}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.stop{background:var(--stop);border-color:var(--stop);color:#fff;font-weight:600}
+  .btn.ghost{background:transparent}
+  .btn[disabled]{opacity:.45;color:var(--tx-3)}
+  .body{display:flex;min-height:520px}
+  .nav{width:200px;flex:0 0 200px;border-right:1px solid var(--bd-subtle);background:var(--bg-surface);padding:12px 8px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-md);color:var(--tx-2);text-decoration:none;font-size:13px;margin-bottom:2px}
+  .nav a.on{background:rgba(59,130,246,.14);color:var(--tx-1);font-weight:500;box-shadow:inset 2px 0 0 var(--brand)}
+  .nav a .n{margin-left:auto;font-size:11px;background:var(--comp);color:#fff;border-radius:var(--r-pill);padding:1px 7px;font-weight:600}
+  .ico{width:16px;height:16px;flex:0 0 16px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .main{flex:1;padding:20px;min-width:0}
+  .mtitle{font-size:16px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .card{background:var(--bg-surface);border:1px solid var(--bd-subtle);border-radius:var(--r-lg);padding:14px}
+  .card.compb{border-left:3px solid var(--comp)}
+  .card h4{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--tx-1);display:flex;align-items:center;gap:8px}
+  .kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--bd-subtle);font-size:12px}
+  .kv:last-child{border-bottom:0}
+  .kv .k{color:var(--tx-2)}
+  .kv .v{color:var(--tx-1);font-weight:500}
+  .banner{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);font-size:12px;margin-bottom:12px}
+  .banner.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);color:#FCD34D}
+  .banner.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#FCA5A5}
+  .banner.info{background:rgba(56,189,248,.09);border:1px solid rgba(56,189,248,.3);color:#7DD3FC}
+  .banner.ok{background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.3);color:#86EFAC}
+  .evt{max-height:190px;overflow:auto}
+  .evt .row{display:flex;gap:8px;align-items:baseline;padding:5px 0;border-bottom:1px dashed var(--bd-subtle);font-size:12px}
+  .evt .row time{color:var(--tx-3);font-family:var(--mono);flex:0 0 54px}
+  .evt .row .u{color:var(--info)}
+  .evt .row .arrow{color:var(--tx-3)}
+  .evt .row .hit{color:var(--ok)}
+  .evt .row .blk{color:var(--err)}
+  .muted{color:var(--tx-3);font-size:12px;padding:10px 0}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--tx-2);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--bd-strong);background:var(--bg-surface)}
+  td{padding:8px 10px;border-bottom:1px solid var(--bd-subtle);vertical-align:top}
+  tr:nth-child(even) td{background:rgba(255,255,255,.012)}
+  code,.mono{font-family:var(--mono);font-size:12px}
+  .codebox{background:var(--bg-inset);border:1px solid var(--bd-subtle);border-radius:var(--r-md);padding:12px;font-family:var(--mono);font-size:12px;color:#CBD5E1;white-space:pre-wrap;line-height:1.7}
+  .codebox .var{color:#FCD34D}
+  .codebox .rand{color:#D8B4FE}
+  .codebox .cm{color:var(--tx-3)}
+  .codebox .bad{background:rgba(245,158,11,.14);border-radius:3px;display:inline-block;padding:0 3px}
+  .three{display:grid;grid-template-columns:220px 1fr 340px;gap:12px}
+  .list{border:1px solid var(--bd-subtle);border-radius:var(--r-md);overflow:hidden}
+  .list .it{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12px;border-bottom:1px solid var(--bd-subtle);color:var(--tx-2)}
+  .list .it:last-child{border-bottom:0}
+  .list .it.sel{background:rgba(59,130,246,.13);color:var(--tx-1)}
+  .list .it .n{margin-left:auto;font-size:10px;color:var(--warn)}
+  .rolecard{display:grid;gap:8px}
+  .rolehead{display:flex;align-items:center;gap:8px;font-weight:600}
+  .fieldrow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;padding:4px 0}
+  .switch{width:34px;height:18px;border-radius:var(--r-pill);background:var(--bd-strong);position:relative;flex:0 0 34px}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.15s}
+  .switch.on{background:var(--brand)}
+  .switch.on::after{left:18px}
+  .switch.lock{background:var(--ok)}
+  .selectlike{font-size:12px;color:var(--tx-2);border:1px solid var(--bd-strong);border-radius:var(--r-sm);padding:3px 8px;background:var(--bg-inset)}
+  .staterow{display:flex;align-items:center;gap:12px;padding:11px 12px;border-bottom:1px solid var(--bd-subtle);font-size:12px}
+  .staterow .nm{flex:0 0 200px;color:var(--tx-1)}
+  .staterow .dt{flex:1;color:var(--tx-2);font-family:var(--mono);font-size:11px}
+  .statechip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:var(--r-pill);font-size:11px;font-weight:500}
+  .statechip.ok{color:var(--ok);background:rgba(34,197,94,.1)}
+  .statechip.warn{color:var(--warn);background:rgba(245,158,11,.1)}
+  .statechip.err{color:var(--err);background:rgba(239,68,68,.1)}
+  .statechip.info{color:var(--info);background:rgba(56,189,248,.1)}
+  .locked{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--tx-3)}
+
+  /* ---------- overlay ---------- */
+  .livewrap{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start}
+  .live{position:relative;aspect-ratio:16/9;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--bd-strong);
+    background:
+      radial-gradient(120% 80% at 70% 20%, #2b3a55 0%, transparent 60%),
+      radial-gradient(90% 70% at 20% 90%, #3a2b55 0%, transparent 60%),
+      linear-gradient(160deg,#141a24,#0d1117)}
+  .live .avatar{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:150px;height:150px;border-radius:50%;background:linear-gradient(160deg,#334155,#1e293b);border:2px solid #475569;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-size:12px}
+  .live .liveTag{position:absolute;left:16px;top:16px;display:flex;gap:6px}
+  .live .platUI{position:absolute;right:16px;top:16px;font-size:11px;color:#94A3B8;background:rgba(0,0,0,.4);padding:3px 8px;border-radius:var(--r-sm)}
+  .live .platUI2{position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(0deg,rgba(0,0,0,.55),transparent);display:flex;align-items:center;padding:0 16px;font-size:12px;color:#CBD5E1}
+  .aipill{position:absolute;right:16px;bottom:16px;display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:var(--r-pill);
+    background:linear-gradient(135deg,#7C3AED,#3B82F6);color:#fff;font-size:12px;font-weight:600;opacity:.92;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+  .aipill .ai{font-weight:800;letter-spacing:.5px;background:rgba(255,255,255,.22);padding:1px 6px;border-radius:var(--r-sm);font-size:11px}
+  .popup{position:absolute;left:16px;bottom:78px;width:330px;background:rgba(15,18,22,.94);border:1px solid rgba(124,58,237,.5);border-radius:var(--r-lg);box-shadow:var(--sh-lg);overflow:hidden}
+  .popup .ph{display:flex;align-items:center;gap:8px;padding:9px 12px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(59,130,246,.18));font-size:12px;font-weight:600}
+  .popup .pno{background:var(--comp);color:#fff;border-radius:var(--r-sm);padding:1px 7px;font-size:11px}
+  .popup .pb{padding:10px 12px;font-size:12px;color:var(--tx-1);line-height:1.6}
+  .popup .pf{display:flex;align-items:center;gap:6px;padding:6px 12px 9px;font-size:10px;color:var(--tx-2)}
+  .toast{position:absolute;left:16px;top:56px;display:flex;align-items:center;gap:8px;background:rgba(15,18,22,.9);border:1px solid rgba(245,158,11,.5);color:#FCD34D;font-size:11px;padding:6px 10px;border-radius:var(--r-md)}
+  .lvc{position:absolute;top:6px;right:6px;font-size:9px;background:rgba(56,189,248,.9);color:#06283a;font-weight:700;padding:1px 6px;border-radius:var(--r-pill)}
+  .lvc.local{background:rgba(148,163,184,.95);color:#0f172a}
+  .specrow{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--bd-subtle);font-size:12px}
+  .specrow .k{flex:0 0 92px;color:var(--tx-2)}
+  .specrow .v{color:var(--tx-1)}
+
+  /* ---------- onboarding ---------- */
+  .steps{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+  .step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx-3)}
+  .step .c{width:22px;height:22px;border-radius:50%;border:1px solid var(--bd-strong);display:flex;align-items:center;justify-content:center;font-size:11px}
+  .step.on{color:var(--tx-1)}
+  .step.on .c{background:var(--brand);border-color:var(--brand);color:#fff}
+  .step.done .c{background:var(--ok);border-color:var(--ok);color:#05230f}
+  .step .sep{width:22px;height:1px;background:var(--bd-subtle)}
+  .onb{max-width:760px;margin:0 auto}
+  .center{text-align:center}
+  .big{font-size:16px;font-weight:600;margin:6px 0}
+  .skeleton{height:12px;border-radius:var(--r-sm);background:linear-gradient(90deg,#1c232c,#252d38,#1c232c);background-size:200% 100%;animation:sk 1.2s infinite}
+  @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .modal{background:var(--bg-surface-2);border:1px solid var(--bd-strong);border-radius:var(--r-lg);box-shadow:var(--sh-lg);max-width:420px;margin:18px auto;overflow:hidden}
+  .modal .mh{padding:14px 16px;border-bottom:1px solid var(--bd-subtle);font-weight:600}
+  .modal .mb{padding:16px;font-size:12px;color:var(--tx-2);line-height:1.7}
+  .modal .mf{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--bd-subtle)}
+  .checkrow{display:flex;align-items:flex-start;gap:8px;margin-top:12px;color:var(--tx-1)}
+  .cb{width:15px;height:15px;border:1px solid var(--bd-strong);border-radius:3px;flex:0 0 15px;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ok)}
+  .progress{height:6px;border-radius:var(--r-pill);background:var(--bg-inset);overflow:hidden;margin-top:8px}
+  .progress i{display:block;height:100%;width:62%;background:linear-gradient(90deg,#7C3AED,#3B82F6)}
+  .annot{font-size:11px;color:var(--tx-3);margin-top:8px;line-height:1.6}
+  .aicol{color:#D8B4FE}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .seven{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>MARS-4 · AI 直播助播 MVP（合规版）— UI / 交互设计原型 <span class="tag">v0.1</span></h1>
+  <p class="sub">三块界面：本地控制台 · Overlay（AI 明示 + 商品弹窗）· 侧载引导页</p>
+  <p class="meta">配套规范：<code>docs/design/MARS-4/ui-design.md</code> ｜ 上游：<code>docs/design/MARS-4/design.md</code> v0.1 ｜ 设计者：Designer-46746e7f ｜ 2026-10-17</p>
+
+  <!-- ============ TOKENS ============ -->
+  <h2>0 · 设计 token</h2>
+  <div class="label">色彩 · 深色默认</div>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#0F1216"></div><div class="cap"><b>bg/base</b>#0F1216</div></div>
+    <div class="sw"><div class="chip" style="background:#161B22"></div><div class="cap"><b>bg/surface</b>#161B22</div></div>
+    <div class="sw"><div class="chip" style="background:#1C232C"></div><div class="cap"><b>bg/surface-2</b>#1C232C</div></div>
+    <div class="sw"><div class="chip" style="background:#0B0E12"></div><div class="cap"><b>bg/inset</b>#0B0E12</div></div>
+    <div class="sw"><div class="chip" style="background:#3B82F6"></div><div class="cap"><b>brand/default</b>#3B82F6</div></div>
+    <div class="sw"><div class="chip" style="background:#22C55E"></div><div class="cap"><b>status/ok</b>#22C55E</div></div>
+    <div class="sw"><div class="chip" style="background:#F59E0B"></div><div class="cap"><b>status/warn</b>#F59E0B</div></div>
+    <div class="sw"><div class="chip" style="background:#EF4444"></div><div class="cap"><b>status/error</b>#EF4444</div></div>
+    <div class="sw"><div class="chip" style="background:#A855F7"></div><div class="cap"><b>compliance/accent</b>#A855F7</div></div>
+    <div class="sw"><div class="chip" style="background:linear-gradient(135deg,#7C3AED,#3B82F6)"></div><div class="cap"><b>ai/badge（唯一）</b>#7C3AED→#3B82F6</div></div>
+    <div class="sw"><div class="chip" style="background:#DC2626"></div><div class="cap"><b>stop/default</b>#DC2626</div></div>
+  </div>
+
+  <div class="label">字体 / 字号 / 圆角 / 间距</div>
+  <div class="scales">
+    <span style="font-size:20px;font-weight:600;color:var(--tx-1)">Display 20</span>
+    <span style="font-size:16px;font-weight:600;color:var(--tx-1)">H1 16</span>
+    <span style="font-size:14px;font-weight:600;color:var(--tx-1)">H2 14</span>
+    <span style="font-size:13px;color:var(--tx-1)">Body 13</span>
+    <span style="font-size:12px;color:var(--tx-2)">Caption 12</span>
+    <span style="font-size:11px;color:var(--tx-3)">Micro 11</span>
+    <span class="mono" style="color:#CBD5E1">Mono 12 · Consolas</span>
+  </div>
+  <div class="scales" style="margin-top:16px">
+    <span class="scale-item"><span class="box" style="width:16px;height:16px;border-radius:4px"></span>r/sm 4</span>
+    <span class="scale-item"><span class="box" style="width:16px;height:16px;border-radius:6px"></span>r/md 6</span>
+    <span class="scale-item"><span class="box" style="width:20px;height:20px;border-radius:10px"></span>r/lg 10</span>
+    <span class="scale-item"><span class="box" style="width:26px;height:14px;border-radius:999px"></span>r/pill</span>
+    <span style="width:24px"></span>
+    <span class="scale-item"><span class="box" style="width:4px;height:4px;background:#475569"></span>4</span>
+    <span class="scale-item"><span class="box" style="width:8px;height:8px;background:#475569"></span>8</span>
+    <span class="scale-item"><span class="box" style="width:12px;height:12px;background:#475569"></span>12</span>
+    <span class="scale-item"><span class="box" style="width:16px;height:16px;background:#475569"></span>16</span>
+    <span class="scale-item"><span class="box" style="width:24px;height:24px;background:#475569"></span>24</span>
+    <span class="scale-item"><span class="box" style="width:32px;height:32px;background:#475569"></span>32</span>
+  </div>
+  <p class="annot">状态一律「图标 + 文字 + 颜色」三通道；AI 明示渐变 <b>仅</b> 用于明示标识，保持唯一可识别。</p>
+
+  <!-- ============ A CONSOLE ============ -->
+  <h2>A · 本地控制台（1280×800 基线）</h2>
+
+  <div class="frame">
+    <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="t">ai-host.exe — 本地控制台</span></div>
+    <!-- topbar -->
+    <div class="topbar">
+      <span class="aibadge" title="本工具使用 AI 合成语音播报。合成语音在直播画面常驻明示。">ⓘ AI 合成语音</span>
+      <span class="appname">AI 直播助播</span><span class="ver">v0.1.0</span>
+      <span class="spacer"></span>
+      <span class="pill ok"><span class="dotc"></span>抖音已连接 · 房间 738…21</span>
+      <span class="pill gray">已开播 01:23:45</span>
+      <span class="btn stop">一键停</span>
+    </div>
+    <div class="body">
+      <!-- nav -->
+      <div class="nav">
+        <a class="on"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>概览</a>
+        <a><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>规则</a>
+        <a><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>角色</a>
+        <a><svg class="ico" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>状态与健康</a>
+        <a><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>合规中心<span class="n">3</span></a>
+        <a><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg>审计日志</a>
+        <a><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>设置</a>
+      </div>
+      <!-- main -->
+      <div class="main">
+        <div class="mtitle">概览</div>
+        <div class="grid2">
+          <div class="card">
+            <h4>连接</h4>
+            <div class="kv"><span class="k">平台</span><span class="v">抖音（巨量百应）· 只读采集</span></div>
+            <div class="kv"><span class="k">房间</span><span class="v">738…21</span></div>
+            <div class="kv"><span class="k">状态</span><span class="v" style="color:var(--ok)">● 已连接</span></div>
+            <div class="kv"><span class="k">重连次数 / 最后事件</span><span class="v">2 次 · 12:04:31</span></div>
+          </div>
+          <div class="card">
+            <h4>运行</h4>
+            <div class="kv"><span class="k">当前角色</span><span class="v">助播 · 音色「知性女声」</span></div>
+            <div class="kv"><span class="k">输出通道</span><span class="v" style="color:var(--warn)">预录音频（TTS 不可用）</span></div>
+            <div class="kv"><span class="k">下一轮换</span><span class="v">主播 00:42</span></div>
+            <div class="kv"><span class="k">音量 / 运行时长</span><span class="v">72% · 01:23:45</span></div>
+          </div>
+          <div class="card">
+            <h4>实时事件流 <span class="tag">aria-live</span></h4>
+            <div class="evt">
+              <div class="row"><time>12:04:31</time><span class="u">用户a**8</span><span>进直播间</span><span class="arrow">→</span><span class="hit">欢迎新人</span></div>
+              <div class="row"><time>12:04:30</time><span class="u">小**丽</span><span>「有没有优惠」</span><span class="arrow">→</span><span class="hit">单匹配「优惠」</span></div>
+              <div class="row"><time>12:04:28</time><span class="u">王**</span><span>送 玫瑰 ×1</span><span class="arrow">→</span><span class="hit">感谢礼物</span></div>
+              <div class="row"><time>12:04:26</time><span class="u">系统</span><span>「全网最低价」</span><span class="arrow">→</span><span class="blk">⛔ 违禁词拦截「最低」</span></div>
+              <div class="row"><time>12:04:22</time><span class="u">主播语音</span><span>「安排上车」</span><span class="arrow">→</span><span class="hit">回答主播</span></div>
+            </div>
+          </div>
+          <div class="card compb">
+            <h4><span style="color:var(--comp)">◆</span> 合规摘要</h4>
+            <div class="kv"><span class="k">今日拦截</span><span class="v" style="color:var(--err)">3 条</span></div>
+            <div class="kv"><span class="k">禁说词命中</span><span class="v" style="color:var(--warn)">5 次（已静默不输出）</span></div>
+            <div class="banner warn" style="margin:10px 0 0"><span>⛔</span><span>「全网<mark style="background:rgba(239,68,68,.35);color:#FCA5A5">最低</mark>价」→ 已拦截，附改写建议</span></div>
+            <div style="margin-top:8px"><span class="btn sm ghost">查看合规中心 →</span></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <span class="btn primary">开始播控</span><span class="btn">测试播报</span><span class="btn">暂停应答</span><span class="btn">Overlay 预览</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="annot">顶栏 AI 明示徽标 <b>常驻不可移除</b>；「一键停」危险色，未开播置灰。概览四区：连接 / 运行 / 实时事件流 / 合规摘要。</p>
+
+  <h3>DES-C02 规则管理（原文语义编辑 · 三栏）</h3>
+  <div class="frame"><div class="body">
+    <div class="nav" style="width:220px;flex:0 0 220px">
+      <div class="label" style="margin:6px 8px 8px">规则文件</div>
+      <div class="list">
+        <div class="it sel">全匹配关键词1.txt<span class="n">⚠1</span></div>
+        <div class="it">单匹配关键词1.txt</div>
+        <div class="it">模糊匹配1.txt</div>
+        <div class="it">感谢关注.txt</div>
+        <div class="it">感谢点赞.txt</div>
+        <div class="it">感谢礼物.txt</div>
+        <div class="it">欢迎新人.txt</div>
+        <div class="it">随机插话报时.txt</div>
+        <div class="it">回答主播1.txt</div>
+        <div class="it">关键词弹窗1.txt</div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="mtitle">全匹配关键词1.txt <span class="tag full">FULL</span></div>
+      <table>
+        <thead><tr><th style="width:70px">模式</th><th>关键词组</th><th>回复（摘要）</th><th style="width:80px">状态</th><th style="width:50px">行</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag full">FULL</span></td><td class="mono">无人 录播 录像</td><td>…我们都是真实的…<span class="aicol"> 〔按 DECISION-5 改写为 AI 明示〕</span></td><td><span style="color:var(--warn)">⚠ 红线话术</span></td><td>1</td></tr>
+          <tr><td><span class="tag full">FULL</span></td><td class="mono">发货 快递</td><td>好的，【今天发出#48小时内发出】…</td><td><span style="color:var(--ok)">✓</span></td><td>3</td></tr>
+          <tr><td><span class="tag full">FULL</span></td><td class="mono">关键词：发货时间、快递信息</td><td>—（按注释忽略）</td><td><span style="color:var(--warn)">⚠ 无“=”</span></td><td>4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="main" style="flex:0 0 340px;border-left:1px solid var(--bd-subtle)">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">编辑器</div>
+      <div class="codebox">发货 快递=好的，<span class="rand">【今天发出#48小时内发出】</span>，请留意<span class="var">{用户名称}</span>的订单～
+<span class="cm">关键词：发货时间、快递信息</span>   ← <span class="bad">无 “=” 行</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">
+        <span class="tag">插入变量</span>
+        <span class="tag">｛用户名称｝</span><span class="tag">｛现在时间｝</span><span class="tag">｛在线人数｝</span><span class="tag">｛礼物名称｝</span><span class="tag">｛再过10分钟｝</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px"><span class="btn sm">＋随机组【】</span><span class="btn sm">＋商品弹窗模板</span></div>
+      <div class="banner warn" style="margin:0">⚠ 第 4 行无 “=”，将<b>按注释忽略</b>（不会静默丢弃）<span style="margin-left:auto" class="btn sm ghost">定位</span></div>
+      <div class="banner warn" style="margin:8px 0 0">⚠ 未知变量 <span class="mono">{xxx}</span>：运行时保留原文并告警</div>
+      <div style="display:flex;gap:8px;margin-top:12px"><span class="btn primary">保存</span><span class="btn">另存为</span><span class="btn ghost">还原</span></div>
+    </div>
+  </div></div>
+  <p class="annot">沿用原件 txt 语义（<code>关键词组=回复</code>、<code>【a#b#c】</code>、<code>{变量}</code>）；无 <code>=</code> 行、未知变量均在 UI 可见告警，不静默。</p>
+
+  <h3>DES-C03 角色管理 · DES-C04 状态与健康 · DES-C05 合规中心</h3>
+  <div class="grid3">
+    <div class="card">
+      <h4>角色管理（轮换）</h4>
+      <div class="rolecard">
+        <div class="fieldrow"><span class="rolehead">主播</span><span class="switch on"></span></div>
+        <div class="fieldrow"><span class="k" style="color:var(--tx-2)">音色</span><span class="selectlike">知性女声 ▾</span></div>
+        <div class="fieldrow"><span class="k" style="color:var(--tx-2)">轮换间隔</span><span class="selectlike">120s ▾</span></div>
+        <div class="fieldrow"><span class="rolehead">助播</span><span class="switch on"></span></div>
+        <div class="fieldrow"><span class="k" style="color:var(--tx-2)">音色</span><span class="selectlike">活力男声 ▾</span></div>
+        <div class="fieldrow"><span class="rolehead">插播</span><span class="switch"></span></div>
+        <div class="fieldrow"><span class="k" style="color:var(--tx-2)">音色</span><span class="statechip warn">缺音色</span></div>
+      </div>
+      <div class="banner info" style="margin-top:10px;font-size:11px"><span>ⓘ</span><span>轮换仅用于听感自然，<b>不用于规避平台身份识别</b>。</span></div>
+    </div>
+    <div class="card">
+      <h4>状态与健康</h4>
+      <div class="banner warn" style="margin-bottom:10px"><span>⚠</span><span>TTS 不可用，当前仅预录音频应答</span></div>
+      <div class="staterow" style="padding:8px 0"><span class="statechip ok">● 已连接</span><span class="nm" style="flex:1">抖音连接</span></div>
+      <div class="staterow" style="padding:8px 0"><span class="statechip warn">◌ 不可用</span><span class="nm" style="flex:1">TTS :12880</span></div>
+      <div class="staterow" style="padding:8px 0"><span class="statechip ok">● 健康</span><span class="nm" style="flex:1">ASR :9880</span></div>
+      <div class="staterow" style="padding:8px 0"><span class="statechip err">✕ 缺失</span><span class="nm" style="flex:1">Manifest 校验</span><span class="btn sm ghost">前往侧载</span></div>
+    </div>
+    <div class="card compb">
+      <h4><span style="color:var(--comp)">◆</span> 合规中心</h4>
+      <div class="fieldrow"><span style="color:var(--tx-1)">发布拦截</span><span class="switch lock"></span></div>
+      <div class="fieldrow"><span style="color:var(--tx-2)">改写引擎</span><span class="selectlike">本地规则库（LLM 关）</span></div>
+      <div class="label" style="margin:12px 0 6px">拦截记录</div>
+      <div class="banner err" style="margin:0 0 8px;font-size:11px"><span>⛔</span><span>「全网<b>最低</b>价」→ 已拦截</span></div>
+      <div class="codebox" style="font-size:11px">改写建议（可直接过审，非替换照念）：<br>「本场到手价很有竞争力，具体以商品页为准」<br><span class="btn sm ghost" style="margin-top:8px">复制</span> <span class="locked">🔒 无“一键播报”按钮（红线）</span></div>
+    </div>
+  </div>
+  <p class="annot">合规中心只有「复制」——<b>不提供「一键播报 / 发送」</b>（红线①硬约束）；发布拦截默认开且锁定。状态页任何降级都在 banner + 事件流 + 状态行三处一致标注。</p>
+
+  <!-- ============ B OVERLAY ============ -->
+  <h2>B · Overlay（直播画面叠加层 · 透明置顶 · 点击穿透）</h2>
+  <div class="livewrap">
+    <div class="live">
+      <div class="liveTag"><span class="tag" style="background:rgba(239,68,68,.2);color:#FCA5A5;border-color:rgba(239,68,68,.4)">● LIVE</span></div>
+      <div class="platUI">平台 UI · 安全区避让</div>
+      <div class="avatar">数字人 / 画面</div>
+      <div class="toast"><span>⚠</span>平台断连，重连中（3）<span class="lvc local">本地</span></div>
+      <!-- product popup -->
+      <div class="popup">
+        <div class="ph"><span class="pno">商品 3</span>新款女装 · 3号链接<span class="lvc">直播</span></div>
+        <div class="pb">新到的夏季连衣裙，版型显瘦，尺码 S–XL，喜欢的宝子看 3 号链接～</div>
+        <div class="pf"><span class="aibadge" style="padding:2px 7px;font-size:10px">ⓘ AI 合成语音</span><span>此弹窗文案由 AI 生成并明示</span></div>
+      </div>
+      <!-- AI badge -->
+      <div class="aipill"><span class="ai">AI</span>AI 合成语音</div>
+      <div class="platUI2">平台底部互动条（Overlay 避让）</div>
+    </div>
+    <div class="card">
+      <h4>DES-O01 AI 明示标识（常驻 · 不可关闭）</h4>
+      <div class="specrow"><span class="k">形态</span><span class="v">圆角 pill：<span class="aibadge" style="padding:2px 8px;font-size:11px">ⓘ AI 合成语音</span></span></div>
+      <div class="specrow"><span class="k">位置</span><span class="v">默认右下角，可配四角；可拖动</span></div>
+      <div class="specrow"><span class="k">尺寸</span><span class="v">高 32px · Caption 12 · 内边距 12×8</span></div>
+      <div class="specrow"><span class="k">透明度</span><span class="v">默认 92%（可调 70–100%，<b>下限 70</b>）</span></div>
+      <div class="specrow"><span class="k">反色</span><span class="v">浅底/深底两套，对比度 ≥ 4.5:1</span></div>
+      <div class="specrow" style="border-bottom:0"><span class="k">常驻性</span><span class="v" style="color:var(--err)">🔒 不允许隐藏；开播即现</span></div>
+      <h4 style="margin-top:16px">DES-O02 商品弹窗</h4>
+      <div class="specrow"><span class="k">内容</span><span class="v">商品号 + 文案 + <b>AI 明示同框</b></span></div>
+      <div class="specrow"><span class="k">默认位置/时长</span><span class="v">左下角 · 8s（3–20s 可调）</span></div>
+      <div class="specrow"><span class="k">队列</span><span class="v">同时 1 条，溢出显示 <span class="mono">+n</span></span></div>
+      <div class="specrow" style="border-bottom:0"><span class="k">触发</span><span class="v">手动 / 规则命中（自动触发 = 受控降级，<b>默认关</b>）</span></div>
+      <h4 style="margin-top:16px">DES-O03 运行提示</h4>
+      <p class="annot" style="margin-top:0">断连 / 降级 toast <b>仅操作端可见</b>；用角标区分 <span class="lvc local" style="position:static">本地</span> 与 <span class="lvc" style="position:static">直播</span> 两种通道，避免误投流。</p>
+      <h4 style="margin-top:16px">适配</h4>
+      <div class="specrow" style="border-bottom:0"><span class="k">分辨率</span><span class="v">1080p 横 / 竖 1080×1920 / 4K 按 DPI 缩放</span></div>
+    </div>
+  </div>
+  <p class="annot">AI 明示为 <b>双保险</b>：直播流内（此处）+ 控制台顶栏徽标；即便 Overlay 未开，控制台仍明示。商品弹窗与明示标识同框。</p>
+
+  <!-- ============ C ONBOARDING ============ -->
+  <h2>C · 侧载引导页（首启 / 资源缺失）</h2>
+  <div class="frame"><div class="main">
+    <div class="onb">
+      <div class="steps">
+        <span class="step done"><span class="c">✓</span>① 环境自检</span><span class="sep"></span>
+        <span class="step on"><span class="c">2</span>② 资源清单</span><span class="sep"></span>
+        <span class="step"><span class="c">3</span>③ 侧载导入</span><span class="sep"></span>
+        <span class="step"><span class="c">4</span>④ 完成</span>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <h4>DES-N02 资源清单 · Manifest 校验</h4>
+        <table>
+          <thead><tr><th>资源</th><th style="width:120px">类型</th><th style="width:130px">Manifest 期望</th><th style="width:90px">当前</th><th style="width:110px">sha256</th><th style="width:150px">状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">models/tts/damo</td><td>TTS 模型</td><td class="mono">1.2.0</td><td class="mono">—</td><td>—</td><td><span class="statechip warn">⚠ 缺失</span> <span class="btn sm ghost">导入</span></td></tr>
+            <tr><td class="mono">models/asr/funasr</td><td>ASR 模型</td><td class="mono">0.9.4</td><td class="mono">0.9.4</td><td><span style="color:var(--ok)">✓ 通过</span></td><td><span class="statechip ok">✓ 就绪</span></td></tr>
+            <tr><td class="mono">voices/主播音色</td><td>音色</td><td class="mono">1.0.0</td><td class="mono">0.8.0</td><td><span style="color:var(--warn)">版本不匹配</span></td><td><span class="statechip warn">⚠ 需更新</span> <span class="btn sm ghost">更新</span></td></tr>
+            <tr><td class="mono">voices/助播音色</td><td>音色</td><td class="mono">1.0.0</td><td class="mono">1.0.0</td><td><span style="color:var(--err)">✕ 不符</span></td><td><span class="statechip err">✕ 校验失败</span> <span class="btn sm ghost">重新导入</span></td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <span class="btn">全部导入</span><span class="btn ghost">跳过，降级为仅预录音频</span>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h4>DES-N01 环境自检（加载态）</h4>
+          <div class="fieldrow"><span class="skeleton" style="width:120px"></span><span class="statechip info">检测中…</span></div>
+          <div class="fieldrow"><span class="skeleton" style="width:150px"></span><span class="statechip info">检测中…</span></div>
+          <div class="fieldrow"><span class="skeleton" style="width:100px"></span><span class="statechip ok">✓ 通过</span></div>
+          <div class="annot">逐项：models / voices / TTS:12880 / ASR:9880 / Chrome 路径 / 写入权限</div>
+        </div>
+        <div class="card">
+          <h4>DES-N03 侧载导入</h4>
+          <div class="fieldrow"><span>models/tts/damo</span><span class="statechip info">导入中 62%</span></div>
+          <div class="progress"><i></i></div>
+          <div class="banner err" style="margin:12px 0 0;font-size:11px"><span>✕</span><span>校验失败：<span class="mono">models/tts/xxx.bin</span> sha256 不符，文件可能损坏</span></div>
+          <div class="banner err" style="margin:8px 0 0;font-size:11px"><span>✕</span><span>目标目录不可写，请以管理员运行或更换目录</span></div>
+        </div>
+      </div>
+
+      <h4 style="margin:20px 0 8px">DES-N03 降级确认弹窗（选择跳过后）</h4>
+      <div class="modal">
+        <div class="mh">未安装全部模型</div>
+        <div class="mb">当前将<b>仅使用预录音频</b>应答；TTS / ASR 功能不可用。稍后可在控制台「侧载与资源」补装。
+          <div class="checkrow"><span class="cb">✓</span><span>我已知晓：未装模型期间无法使用 TTS 合成语音。</span></div>
+        </div>
+        <div class="mf"><span class="btn">返回导入</span><span class="btn">仍要跳过</span></div>
+      </div>
+
+      <h4 style="margin:20px 0 8px">DES-N04 完成</h4>
+      <div class="card center">
+        <div style="font-size:28px;color:var(--ok)">✓</div>
+        <div class="big">准备就绪</div>
+        <div class="muted">已就绪 3 项 · 降级 1 项（预录音频模式）</div>
+        <div style="margin-top:10px"><span class="btn primary">进入控制台</span></div>
+      </div>
+      <div class="annot">控制台侧导航「侧载与资源」复用 DES-N02 清单：随时补装 / 校验 / <b>独立替换模型目录</b>（AC-4）。</div>
+    </div>
+  </div></div>
+
+  <!-- ============ TRACE ============ -->
+  <h2>D · DESIGN-ID → 需求追溯</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th style="width:120px">DESIGN-ID</th><th>界面 / 组件</th><th style="width:260px">对应需求</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">DES-C00..C07</td><td>控制台（顶栏/概览/规则/角色/状态/合规/审计/设置）</td><td>AC-1 AC-2 AC-3 AC-5 · BR2 BR7 BR8 · R-1..R-4</td></tr>
+        <tr><td class="mono">DES-O01</td><td>AI 明示标识（常驻不可关）</td><td><b>AC-6</b> · R-2</td></tr>
+        <tr><td class="mono">DES-O02</td><td>商品弹窗（AI 明示同框）</td><td>BR7 · R-4</td></tr>
+        <tr><td class="mono">DES-O03</td><td>Overlay 运行提示（本地/直播区分）</td><td>AC-1 AC-3</td></tr>
+        <tr><td class="mono">DES-N01..N04</td><td>侧载引导（自检/清单/导入+降级/完成）</td><td><b>AC-4</b> AC-3</td></tr>
+        <tr><td class="mono">DES-T00</td><td>设计与无障碍 token</td><td>前端实现基线</td></tr>
+      </tbody>
+    </table>
+    <p class="annot">AC 覆盖自检：AC-1 ✅ · AC-2 ✅ · AC-3 ✅ · AC-4 ✅ · AC-5 ✅ · AC-6 ✅（详见 ui-design.md §9）。</p>
+  </div>
+
+  <h2>E · 无障碍与响应式要点</h2>
+  <div class="seven">
+    <div class="card"><b>对比度</b><div class="annot">正文 ≥ 4.5:1；明示标识浅/深底均 ≥ 4.5:1</div></div>
+    <div class="card"><b>三通道状态</b><div class="annot">图标 + 文字 + 颜色，不靠颜色单传</div></div>
+    <div class="card"><b>键盘</b><div class="annot">Tab 全达；焦点环 2px；Esc 关闭</div></div>
+    <div class="card"><b>读屏</b><div class="annot">role=alert / aria-live=polite 播报连接与降级</div></div>
+    <div class="card"><b>动效</b><div class="annot">遵循 prefers-reduced-motion</div></div>
+    <div class="card"><b>窗口断点</b><div class="annot">Compact 1120 / Standard 1280 / Wide 1600</div></div>
+    <div class="card"><b>Overlay</b><div class="annot">1080p / 竖屏 / 4K · 安全区 ≥64px · 多显示器</div></div>
+  </div>
+
+  <p class="annot" style="margin-top:26px">红线隔离自检：本原型<b>不含</b>违禁词替换开关、<b>不含</b>「真人」话术、<b>不含</b>任何反检测/指纹规避入口；自动发送/商品弹窗自动触发均为默认关闭的受控降级。</p>
+</div>
+</body>
+</html>
