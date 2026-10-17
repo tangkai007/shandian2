@@ -1,0 +1,3755 @@
+{
+  "issue": "MARS-1",
+  "contract_baseline": "api-contract v1.3",
+  "generated_at": "2026-10-17T12:48:22Z",
+  "generated_by": "Tester (T2 automation assets)",
+  "note": "Manifest only. Execution belongs to T3 after G2.5 PASS. Do not run against production.",
+  "summary": {
+    "total": 148,
+    "by_source": {
+      "S3c": 120,
+      "T2-supplement": 28
+    },
+    "by_priority": {
+      "P1": 67,
+      "P2": 60,
+      "P3": 21
+    },
+    "method_normalized": 10,
+    "not_runnable": 0
+  },
+  "cases": [
+    {
+      "case_id": "TC-I-COMM-001",
+      "api_id": "—",
+      "module": "通用约定/响应封装与鉴权",
+      "title": "成功响应统一封装含 code/message/data/traceId",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "§2.2 / FR-1.5",
+      "source": "S3c",
+      "preconditions": [
+        "有效 accessToken"
+      ],
+      "request": "Authorization: Bearer <accessToken>",
+      "checks": [
+        "HTTP 200",
+        "code=0",
+        "message=\"ok\"",
+        "data 为业务负载对象",
+        "traceId 非空且贯穿 App→API→MQ→任务（S1a §九）"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-002",
+      "api_id": "—",
+      "module": "通用约定/响应封装与鉴权",
+      "title": "业务失败与 HTTP 状态码并出且 data 为 null",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "auth": "用户",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "§2.2 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "构造业务失败（如非法参数）"
+      ],
+      "request": "Authorization: Bearer <accessToken>",
+      "checks": [
+        "HTTP 400 与 code=40001 并出",
+        "code 为前端分支依据",
+        "data=null 或仅含定位信息"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-003",
+      "api_id": "—",
+      "module": "通用约定/响应封装与鉴权",
+      "title": "无令牌访问受保护接口返回 40100",
+      "method": "GET",
+      "path": "/api/v1/anchor/earnings",
+      "auth": "用户",
+      "expected_http": 401,
+      "expected_code": 40100,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "§2.3 / §2.7 / AC-10",
+      "source": "S3c",
+      "preconditions": [
+        "不携带 Authorization"
+      ],
+      "request": "（无 Authorization）",
+      "checks": [
+        "HTTP 401",
+        "code=40100",
+        "前端触发刷新或跳登录",
+        "不泄露任何业务数据"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-004",
+      "api_id": "—",
+      "module": "通用约定/响应封装与鉴权",
+      "title": "令牌失效（过期/黑名单）返回 40100",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "auth": "用户",
+      "expected_http": 401,
+      "expected_code": 40100,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "§2.3 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "使用已过期或已登出黑名单中的 accessToken"
+      ],
+      "request": "Authorization: Bearer <已失效 token>",
+      "checks": [
+        "HTTP 401",
+        "code=40100"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-005",
+      "api_id": "—",
+      "module": "通用约定/响应封装与鉴权",
+      "title": "越权访问他人资源被拒且服务端校验归属",
+      "method": "GET",
+      "path": "/api/v1/anchor/earnings",
+      "auth": "主播",
+      "expected_http": 403,
+      "expected_code": 40300,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "§2.3 / §九 安全 / AC-10",
+      "source": "S3c",
+      "preconditions": [
+        "用户 V1 的令牌",
+        "目标为主播 U2 的资源"
+      ],
+      "request": "Authorization: Bearer <V1 token>",
+      "checks": [
+        "HTTP 403",
+        "code=40300",
+        "不返回 U2 数据",
+        "越权尝试被记录（审计/告警）",
+        "服务端校验归属，不信任前端传参"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-006",
+      "api_id": "—",
+      "module": "通用约定/分页与幂等",
+      "title": "分页默认值与响应结构",
+      "method": "GET",
+      "path": "/api/v1/wallet/ledger",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "§2.4",
+      "source": "S3c",
+      "preconditions": [
+        "有 >20 条流水"
+      ],
+      "request": "不传 page/size",
+      "checks": [
+        "data={list,total,page,size}",
+        "page 默认 1",
+        "size 默认 20",
+        "total 与实际总条数一致"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-007",
+      "api_id": "—",
+      "module": "通用约定/分页与幂等",
+      "title": "分页 size 越界返回 40001",
+      "method": "GET",
+      "path": "/api/v1/wallet/ledger?page=1&size=101",
+      "auth": "用户",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "§2.4",
+      "source": "S3c",
+      "preconditions": [
+        "—"
+      ],
+      "request": "size=101（>100）",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field 指向 size"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-008",
+      "api_id": "—",
+      "module": "通用约定/分页与幂等",
+      "title": "资金接口缺 Idempotency-Key 被拒",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "§2.6",
+      "source": "S3c",
+      "preconditions": [
+        "余额充足",
+        "不带 Idempotency-Key"
+      ],
+      "request": "（缺 Idempotency-Key）",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "资金接口 Idempotency-Key 必填（充值下单/赠送/提现/IAP 校验）"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-009",
+      "api_id": "—",
+      "module": "通用约定/分页与幂等",
+      "title": "同 Idempotency-Key 重放返回 200 + 首次结果且不重复扣费",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "§2.6 / AC-5",
+      "source": "S3c",
+      "preconditions": [
+        "同一 Idempotency-Key",
+        "余额充足"
+      ],
+      "request": "重复提交同一请求（相同 Idempotency-Key）",
+      "checks": [
+        "第二次返回 200 + 首次结果（非 40900）",
+        "返回同一 order_no",
+        "余额只扣减一次",
+        "不产生第二条重复扣费流水"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-COMM-010",
+      "api_id": "—",
+      "module": "通用约定/分页与幂等",
+      "title": "时间与金额格式：UTC ISO-8601 / 整数分 / 整数币",
+      "method": "GET",
+      "path": "/api/v1/anchor/settlements",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "§2.5 / §6.3",
+      "source": "S3c",
+      "preconditions": [
+        "已有账单"
+      ],
+      "request": "Authorization: Bearer <主播 token>",
+      "checks": [
+        "时间字段为 ISO-8601 UTC（如 2026-11-01T00:00:00Z），period 以 UTC+8 表示",
+        "金额字段为整数分（*_fen / *_amount）",
+        "虚拟币为整数",
+        "无浮点"
+      ],
+      "runnable": true,
+      "note": "原用例为多端点/通用代表例，manifest 已按 path 内动词归一"
+    },
+    {
+      "case_id": "TC-I-AUTH-001",
+      "api_id": "API-AUTH-01",
+      "module": "认证与账号/短信与三方登录",
+      "title": "发送登录验证码成功并返回过期与重发时间",
+      "method": "POST",
+      "path": "/api/v1/auth/sms/send",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-01 / FR-1.1 / BR-1",
+      "source": "S3c",
+      "preconditions": [
+        "合法手机号 S1"
+      ],
+      "request": "{ phone:\"13800000001\", scene:\"LOGIN\" }",
+      "checks": [
+        "code=0",
+        "data.expire_in=300",
+        "data.retry_after=60",
+        "验证码写 Redis TTL 300s"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-002",
+      "api_id": "API-AUTH-01",
+      "module": "认证与账号/短信与三方登录",
+      "title": "手机号格式非法返回 40001",
+      "method": "POST",
+      "path": "/api/v1/auth/sms/send",
+      "auth": "公开",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-01 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "非法手机号"
+      ],
+      "request": "{ phone:\"12345\", scene:\"LOGIN\" }",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field 指向 phone"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-003",
+      "api_id": "API-AUTH-01",
+      "module": "认证与账号/短信与三方登录",
+      "title": "验证码发送频率超限返回 42900",
+      "method": "POST",
+      "path": "/api/v1/auth/sms/send",
+      "auth": "公开",
+      "expected_http": 429,
+      "expected_code": 42900,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-01 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "60s 内重复请求同一手机号"
+      ],
+      "request": "连续请求短信发送",
+      "checks": [
+        "HTTP 429",
+        "code=42900",
+        "前端进入重发倒计时"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-004",
+      "api_id": "API-AUTH-02",
+      "module": "认证与账号/短信与三方登录",
+      "title": "手机号验证码登录成功返回双令牌与用户信息",
+      "method": "POST",
+      "path": "/api/v1/auth/login/sms",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-02 / FR-1.1 / OP-4",
+      "source": "S3c",
+      "preconditions": [
+        "手机号 S1 已收到有效验证码"
+      ],
+      "request": "{ phone:\"13800000001\", code:\"123456\", device:{device_id,platform:\"ANDROID\",app_version} }",
+      "checks": [
+        "code=0",
+        "access_token/refresh_token 非空",
+        "expire_in=7200（access 2h）",
+        "user 结构完整",
+        "need_bind_phone=false（手机号登录）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-005",
+      "api_id": "API-AUTH-02",
+      "module": "认证与账号/短信与三方登录",
+      "title": "验证码错误或过期返回 40001",
+      "method": "POST",
+      "path": "/api/v1/auth/login/sms",
+      "auth": "公开",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-02",
+      "source": "S3c",
+      "preconditions": [
+        "使用错误/过期验证码"
+      ],
+      "request": "{ phone:\"13800000001\", code:\"000000\" }",
+      "checks": [
+        "HTTP 400",
+        "code=40001"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-006",
+      "api_id": "API-AUTH-03",
+      "module": "认证与账号/短信与三方登录",
+      "title": "微信登录成功并强制补绑手机号（DECISION-3/4）",
+      "method": "POST",
+      "path": "/api/v1/auth/login/wechat",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-03 / OP-4 / DECISION-4",
+      "source": "S3c",
+      "preconditions": [
+        "微信授权 code（未绑定手机号的新账号）"
+      ],
+      "request": "{ code:\"<wx code>\", device:{...} }",
+      "checks": [
+        "服务端 code 换票，App 不直传 openid",
+        "data.need_bind_phone=true（微信登录后强制补绑手机号）",
+        "返回 access/refresh 令牌"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-007",
+      "api_id": "API-AUTH-03",
+      "module": "认证与账号/短信与三方登录",
+      "title": "微信登录拒绝 App 直传 openid",
+      "method": "POST",
+      "path": "/api/v1/auth/login/wechat",
+      "auth": "公开",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-03 / §4.1",
+      "source": "S3c",
+      "preconditions": [
+        "请求体携带 openid"
+      ],
+      "request": "{ openid:\"o_xxx\", device:{...} }",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "服务端不采信客户端 openid（防账号孤岛/伪造）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-008",
+      "api_id": "API-AUTH-04",
+      "module": "认证与账号/短信与三方登录",
+      "title": "Apple 登录成功并按要求强制补绑手机号（DECISION-4 裁定）",
+      "method": "POST",
+      "path": "/api/v1/auth/login/apple",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-04 / OP-4 / DECISION-4",
+      "source": "S3c",
+      "preconditions": [
+        "Apple identity_token + authorization_code（首次授权含 email/name）"
+      ],
+      "request": "{ identity_token, authorization_code, full_name, email, device:{...} }",
+      "checks": [
+        "sub → user_identity.open_id",
+        "首次授权 email/name 服务端即时落库",
+        "**按 DECISION-4：data.need_bind_phone=true（三渠道一致，强制补绑手机号）**"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-009",
+      "api_id": "API-AUTH-04",
+      "module": "认证与账号/短信与三方登录",
+      "title": "Apple 登录补绑完成后 need_bind_phone=false",
+      "method": "POST",
+      "path": "/api/v1/auth/login/apple",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-04 / DECISION-4",
+      "source": "S3c",
+      "preconditions": [
+        "已绑手机号的 Apple 账号再次登录"
+      ],
+      "request": "{ identity_token, authorization_code, device:{...} }",
+      "checks": [
+        "data.need_bind_phone=false",
+        "登录直接成功，不再要求补绑"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-010",
+      "api_id": "API-AUTH-04",
+      "module": "认证与账号/短信与三方登录",
+      "title": "Apple 授权失败返回 40001",
+      "method": "POST",
+      "path": "/api/v1/auth/login/apple",
+      "auth": "公开",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-04",
+      "source": "S3c",
+      "preconditions": [
+        "无效 identity_token"
+      ],
+      "request": "{ identity_token:\"invalid\", authorization_code:\"x\" }",
+      "checks": [
+        "HTTP 400",
+        "code=40001"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-011",
+      "api_id": "API-AUTH-05",
+      "module": "认证与账号/短信与三方登录",
+      "title": "刷新令牌轮换且旧 refresh 立即失效",
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-05 / §2.3",
+      "source": "S3c",
+      "preconditions": [
+        "有效 refresh_token"
+      ],
+      "request": "{ refresh_token:\"<r1>\" }",
+      "checks": [
+        "返回新 access_token + 新 refresh_token",
+        "旧 refresh_token 立即失效（黑名单）",
+        "再次用旧 refresh 刷新 → 40100"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-012",
+      "api_id": "API-AUTH-06",
+      "module": "认证与账号/短信与三方登录",
+      "title": "登出后当前 refresh 入黑名单",
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-06 / FR-1.4",
+      "source": "S3c",
+      "preconditions": [
+        "已登录，携带有效 refresh"
+      ],
+      "request": "Authorization: Bearer <accessToken>",
+      "checks": [
+        "data=null",
+        "该 refresh 入黑名单",
+        "后续用该 refresh 刷新 → 40100"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-013",
+      "api_id": "API-AUTH-07",
+      "module": "认证与账号/短信与三方登录",
+      "title": "查询已绑定登录方式列表",
+      "method": "GET",
+      "path": "/api/v1/auth/identities",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-07 / OP-4",
+      "source": "S3c",
+      "preconditions": [
+        "已绑手机号 + 微信"
+      ],
+      "request": "Authorization: Bearer <accessToken>",
+      "checks": [
+        "list 含 provider=PHONE/WECHAT/APPLE、bound、masked_id",
+        "手机号掩码为 138****0000 形式"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-014",
+      "api_id": "API-AUTH-08",
+      "module": "认证与账号/短信与三方登录",
+      "title": "补绑手机号成功（微信/Apple 强制补绑流程）",
+      "method": "POST",
+      "path": "/api/v1/auth/identities/bind",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-08 / DECISION-3/4",
+      "source": "S3c",
+      "preconditions": [
+        "provider=WECHAT 或 APPLE 已授权，未绑手机号",
+        "手机号 S2 可用验证码"
+      ],
+      "request": "{ provider:\"WECHAT\", code:\"...\", phone:\"13800000002\", sms_code:\"123456\" }",
+      "checks": [
+        "绑定成功（唯一(provider,open_id) 落库）",
+        "此后该账号 need_bind_phone=false",
+        "未绑手机号时不可跳过（强制补绑）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-015",
+      "api_id": "API-AUTH-09",
+      "module": "认证与账号/短信与三方登录",
+      "title": "解绑后至少保留 1 个登录方式，否则 40900",
+      "method": "DELETE",
+      "path": "/api/v1/auth/identities/{provider}",
+      "auth": "用户",
+      "expected_http": 409,
+      "expected_code": 40900,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-09 / OP-4",
+      "source": "S3c",
+      "preconditions": [
+        "账号仅剩单一登录方式"
+      ],
+      "request": "DELETE /api/v1/auth/identities/PHONE",
+      "checks": [
+        "HTTP 409",
+        "code=40900",
+        "提示至少保留 1 个可用登录方式"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-016",
+      "api_id": "API-AUTH-09",
+      "module": "认证与账号/短信与三方登录",
+      "title": "解绑非唯一登录方式成功",
+      "method": "DELETE",
+      "path": "/api/v1/auth/identities/{provider}",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-09 / OP-4",
+      "source": "S3c",
+      "preconditions": [
+        "账号已绑手机号 + 微信"
+      ],
+      "request": "DELETE /api/v1/auth/identities/WECHAT",
+      "checks": [
+        "解绑成功，剩余登录方式仍可用",
+        "再登录不受影响"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-017",
+      "api_id": "API-AUTH-10",
+      "module": "认证与账号/实名与资料",
+      "title": "实名提交成功进入核验态并推导未成年",
+      "method": "POST",
+      "path": "/api/v1/auth/realname/submit",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-10 / FR-1.2 / OP-5 / AC-1",
+      "source": "S3c",
+      "preconditions": [
+        "未实名账号 U1"
+      ],
+      "request": "{ real_name:\"张小三\", id_card_no:\"1101...\", birth_date:\"2008-05-01\" }",
+      "checks": [
+        "verify_status=VERIFYING→VERIFIED",
+        "is_minor 由出生日期推导（本例 true）",
+        "verify_channel ∈ {ALIYUN,TENCENT}"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-018",
+      "api_id": "API-AUTH-10",
+      "module": "认证与账号/实名与资料",
+      "title": "实名核验失败返回 ID_MISMATCH 详情且不参与前端分支",
+      "method": "POST",
+      "path": "/api/v1/auth/realname/submit",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-10 / S1b D-HOST-001",
+      "source": "S3c",
+      "preconditions": [
+        "姓名与证件号不一致"
+      ],
+      "request": "{ real_name:\"张小三\", id_card_no:\"错误号码\" }",
+      "checks": [
+        "verify_status=FAILED",
+        "fail_reason=ID_MISMATCH（供应商返回码，仅详情展示，不属平台业务码段）",
+        "前端按 verify_status 渲染，不按该字符串分支"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-019",
+      "api_id": "API-AUTH-10",
+      "module": "认证与账号/实名与资料",
+      "title": "实名提交次数超限返回 42900（5 次锁定）",
+      "method": "POST",
+      "path": "/api/v1/auth/realname/submit",
+      "auth": "用户",
+      "expected_http": 429,
+      "expected_code": 42900,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-AUTH-10 / S1b D-HOST-001",
+      "source": "S3c",
+      "preconditions": [
+        "同账号已连续失败 5 次"
+      ],
+      "request": "第 6 次提交",
+      "checks": [
+        "HTTP 429",
+        "code=42900",
+        "锁定期内不可再次提交（S1b 5 次锁定）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-020",
+      "api_id": "API-AUTH-11",
+      "module": "认证与账号/实名与资料",
+      "title": "查询实名状态用于开播/打赏前置",
+      "method": "GET",
+      "path": "/api/v1/auth/realname",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-AUTH-11 / FR-1.2",
+      "source": "S3c",
+      "preconditions": [
+        "账号已有实名记录"
+      ],
+      "request": "Authorization: Bearer <accessToken>",
+      "checks": [
+        "返回 verify_status / is_minor / birth_date / verified_at",
+        "供 D-HOST-001/002 状态回显"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-021",
+      "api_id": "API-ACCT-01",
+      "module": "认证与账号/实名与资料",
+      "title": "查询当前用户信息含未成年限额配置",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ACCT-01 / FR-1.5 / OP-21",
+      "source": "S3c",
+      "preconditions": [
+        "已登录"
+      ],
+      "request": "Authorization: Bearer <accessToken>",
+      "checks": [
+        "含 id/nickname/avatar/phone_masked/realname_verified/is_minor/roles/anchor_id/status",
+        "minor_limit={single_limit_coin,daily_limit_coin,requires_realname}（OP-21 开关）",
+        "phone_masked 掩码，不返回明文手机号"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-AUTH-022",
+      "api_id": "API-ACCT-05",
+      "module": "认证与账号/实名与资料",
+      "title": "账号注销进入冷却期并到期匿名化",
+      "method": "POST",
+      "path": "/api/v1/users/me/deactivate",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ACCT-05 / FR-1.4 / BR-9",
+      "source": "S3c",
+      "preconditions": [
+        "已登录账号"
+      ],
+      "request": "Authorization: Bearer <accessToken>",
+      "checks": [
+        "返回 deactivate_at 与 cooling_days=15（sys_config 默认）",
+        "冷却期内可撤回",
+        "到期后匿名化（BR-9）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-001",
+      "api_id": "API-DISC-01",
+      "module": "发现与关注",
+      "title": "类目列表初始化 4 类且标注资质要求",
+      "method": "GET",
+      "path": "/api/v1/categories",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-DISC-01 / OP-7",
+      "source": "S3c",
+      "preconditions": [
+        "—"
+      ],
+      "request": "（无鉴权）",
+      "checks": [
+        "list 含才艺/游戏/闲聊/生活 4 条（OP-7）",
+        "每条含 require_qualification / sort"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-002",
+      "api_id": "API-DISC-02",
+      "module": "发现与关注",
+      "title": "热度列表仅返回 LIVE 房间并按热度排序",
+      "method": "GET",
+      "path": "/api/v1/live/rooms?sort=hot&feed=hot&page=1&size=20",
+      "auth": "公开",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-DISC-02 / FR-7.2 / OP-12",
+      "source": "S3c",
+      "preconditions": [
+        "存在直播中与已结束房间"
+      ],
+      "request": "sort=hot",
+      "checks": [
+        "list 全部 status=LIVE",
+        "按 hot_score 排序（在线×w1+5min弹幕×w2+5min礼物币×w3）",
+        "无个性化推荐（OP-12）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-003",
+      "api_id": "API-DISC-02",
+      "module": "发现与关注",
+      "title": "关注流仅返回已关注且正在直播的主播房间（按开播时间倒序）",
+      "method": "GET",
+      "path": "/api/v1/live/rooms?feed=following",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-DISC-02 / OP-12 / FR-6",
+      "source": "S3c",
+      "preconditions": [
+        "已关注 U1(直播中)/U2(未播)"
+      ],
+      "request": "feed=following + 有效令牌",
+      "checks": [
+        "仅返回关注且 LIVE 的房间（U1 可见，U2 不可见）",
+        "按开播时间倒序"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-004",
+      "api_id": "API-DISC-02",
+      "module": "发现与关注",
+      "title": "关注流未登录返回 40100（不得复用 40325）",
+      "method": "GET",
+      "path": "/api/v1/live/rooms?feed=following",
+      "auth": "公开/用户",
+      "expected_http": 401,
+      "expected_code": 40100,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-DISC-02 / §2.7 边界裁定 / §4.2",
+      "source": "S3c",
+      "preconditions": [
+        "匿名未登录"
+      ],
+      "request": "feed=following（无 Authorization）",
+      "checks": [
+        "HTTP 401",
+        "code=40100（**不是 40325**）",
+        "前端走登录分支而非「去绑手机」分支"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-005",
+      "api_id": "API-DISC-02",
+      "module": "发现与关注",
+      "title": "关注流已登录但未绑手机号返回 40325",
+      "method": "GET",
+      "path": "/api/v1/live/rooms?feed=following",
+      "auth": "用户",
+      "expected_http": 403,
+      "expected_code": 40325,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-DISC-02 / §2.7 边界裁定",
+      "source": "S3c",
+      "preconditions": [
+        "已登录、未绑手机号"
+      ],
+      "request": "feed=following + 该账号令牌",
+      "checks": [
+        "HTTP 403",
+        "code=40325（仅表示已登录未绑手机号）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-006",
+      "api_id": "API-DISC-02",
+      "module": "发现与关注",
+      "title": "sort/feed 非法枚举返回 40001",
+      "method": "GET",
+      "path": "/api/v1/live/rooms?sort=abc",
+      "auth": "公开",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-DISC-02 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "—"
+      ],
+      "request": "sort=abc",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field 指向 sort（枚举 hot|new）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-007",
+      "api_id": "API-SOC-01",
+      "module": "发现与关注",
+      "title": "关注主播成功且重复关注幂等返回 200",
+      "method": "POST",
+      "path": "/api/v1/anchors/{id}/follow",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-SOC-01 / FR-6 / OP-12",
+      "source": "S3c",
+      "preconditions": [
+        "已登录用户 V1，主播 U1 存在"
+      ],
+      "request": "Authorization: Bearer <V1 token>；POST /api/v1/anchors/a_1/follow",
+      "checks": [
+        "data={following:true,follower_cnt}",
+        "唯一(follower_id,anchor_id)",
+        "重复关注返回 200（幂等）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-DISC-008",
+      "api_id": "API-SOC-02",
+      "module": "发现与关注",
+      "title": "取消关注软删且可再次关注",
+      "method": "DELETE",
+      "path": "/api/v1/anchors/{id}/follow",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-SOC-02 / FR-6",
+      "source": "S3c",
+      "preconditions": [
+        "V1 已关注 U1"
+      ],
+      "request": "DELETE /api/v1/anchors/a_1/follow",
+      "checks": [
+        "follow.status 软删",
+        "返回 following:false",
+        "再次关注成功"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-001",
+      "api_id": "API-LIVE-01",
+      "module": "开播/设置与前置校验",
+      "title": "查询我的直播间",
+      "method": "GET",
+      "path": "/api/v1/live/rooms/mine",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-LIVE-01 / FR-2.2",
+      "source": "S3c",
+      "preconditions": [
+        "已实名主播 U1"
+      ],
+      "request": "Authorization: Bearer <主播 token>",
+      "checks": [
+        "返回 room{id,title,cover_url,category_id,status,...}",
+        "1 主播 1 房间（anchor_id 唯一）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-002",
+      "api_id": "API-LIVE-02",
+      "module": "开播/设置与前置校验",
+      "title": "修改开播设置且在 4 类白名单内",
+      "method": "PATCH",
+      "path": "/api/v1/live/rooms/{id}",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-LIVE-02 / FR-2.1 / OP-7",
+      "source": "S3c",
+      "preconditions": [
+        "房间归属本人"
+      ],
+      "request": "{ title:\"今晚八点，来听我唱歌\", cover_url:\"...\", category_id:1 }",
+      "checks": [
+        "保存成功",
+        "category_id 必须在一期 4 类白名单内"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-003",
+      "api_id": "API-LIVE-02",
+      "module": "开播/设置与前置校验",
+      "title": "类目不在白名单返回 40001",
+      "method": "PATCH",
+      "path": "/api/v1/live/rooms/{id}",
+      "auth": "主播",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-LIVE-02 / BR-2 / OP-7",
+      "source": "S3c",
+      "preconditions": [
+        "提交电商/教育等受限类目"
+      ],
+      "request": "{ category_id: 99 }",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "受限类目不得开播（OP-7 / BR-2）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-004",
+      "api_id": "API-LIVE-02",
+      "module": "开播/设置与前置校验",
+      "title": "越权修改他人房间返回 40300",
+      "method": "PATCH",
+      "path": "/api/v1/live/rooms/{id}",
+      "auth": "主播",
+      "expected_http": 403,
+      "expected_code": 40300,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-LIVE-02 / §2.3 / AC-10",
+      "source": "S3c",
+      "preconditions": [
+        "用户 V1 令牌，目标房间属主播 U2"
+      ],
+      "request": "Authorization: Bearer <V1 token>",
+      "checks": [
+        "HTTP 403",
+        "code=40300",
+        "不修改他人房间"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-005",
+      "api_id": "API-LIVE-03",
+      "module": "开播/设置与前置校验",
+      "title": "precheck 逐项返回且未实名项 code=40310（AC-1）",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/precheck",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-LIVE-03 / AC-1 / BR-1 / 40310",
+      "source": "S3c",
+      "preconditions": [
+        "主播未完成实名"
+      ],
+      "request": "POST /api/v1/live/rooms/r_1/precheck",
+      "checks": [
+        "data.pass=false",
+        "items 逐项含 key/pass/code",
+        "REALNAME 项 pass=false，code=40310",
+        "CATEGORY_ALLOWED/TITLE_AUDIT/COVER_AUDIT 各自返回结果"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-006",
+      "api_id": "API-LIVE-03",
+      "module": "开播/设置与前置校验",
+      "title": "标题/封面机审未通过时对应项 pass=false",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/precheck",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-LIVE-03 / FR-2.5 / BR-3",
+      "source": "S3c",
+      "preconditions": [
+        "已实名，标题含违规内容"
+      ],
+      "request": "POST .../precheck",
+      "checks": [
+        "TITLE_AUDIT 项 pass=false",
+        "返回可定位的失败项（前端行内报错），不必等到 start 才失败"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-007",
+      "api_id": "API-LIVE-04",
+      "module": "开播/设置与前置校验",
+      "title": "前置通过后开播成功返回带签名与过期的推流地址（AC-2）",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/start",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-LIVE-04 / AC-2 / OP-8",
+      "source": "S3c",
+      "preconditions": [
+        "precheck 全部通过"
+      ],
+      "request": "POST /api/v1/live/rooms/r_1/start",
+      "checks": [
+        "返回 push_url（rtmp://，含防盗链签名与 expire_at）",
+        "stream_name/session_id 非空",
+        "record_enabled=true（开播即录制）",
+        "live_session.status=PREPARING"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-008",
+      "api_id": "API-LIVE-04",
+      "module": "开播/设置与前置校验",
+      "title": "未实名开播被前置拦截返回 40310（AC-1）",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/start",
+      "auth": "主播",
+      "expected_http": 403,
+      "expected_code": 40310,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-LIVE-04 / AC-1 / 40310",
+      "source": "S3c",
+      "preconditions": [
+        "未实名，跳过 precheck 直接 start"
+      ],
+      "request": "POST .../start",
+      "checks": [
+        "HTTP 403",
+        "code=40310",
+        "不生成推流地址"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-009",
+      "api_id": "API-LIVE-04",
+      "module": "开播/设置与前置校验",
+      "title": "已存在 LIVE 时重复开播返回 40900",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/start",
+      "auth": "主播",
+      "expected_http": 409,
+      "expected_code": 40900,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-LIVE-04 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "当前场次已 LIVE"
+      ],
+      "request": "POST .../start",
+      "checks": [
+        "HTTP 409",
+        "code=40900",
+        "不产生第二场次"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-LIVE-010",
+      "api_id": "API-LIVE-05",
+      "module": "开播/设置与前置校验",
+      "title": "关播条件更新避免并发重复关播与重复结算",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/stop",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-LIVE-05 / §6.3",
+      "source": "S3c",
+      "preconditions": [
+        "当前 LIVE"
+      ],
+      "request": "POST .../stop",
+      "checks": [
+        "返回 status=ENDED 与 ended_at",
+        "条件更新 WHERE status='LIVE'",
+        "并发重复 stop 不重复结算"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-PLAY-001",
+      "api_id": "API-PLAY-01",
+      "module": "观看与播放",
+      "title": "房间详情含主播/榜单/在线人数",
+      "method": "GET",
+      "path": "/api/v1/live/rooms/{id}",
+      "auth": "公开/用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-PLAY-01 / FR-3.3",
+      "source": "S3c",
+      "preconditions": [
+        "房间存在"
+      ],
+      "request": "GET /api/v1/live/rooms/r_1",
+      "checks": [
+        "含 room_id/status/anchor/title/category_id/online_cnt/rank",
+        "anchor.following 反映当前用户关注态"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-PLAY-002",
+      "api_id": "API-PLAY-02",
+      "module": "观看与播放",
+      "title": "播放地址返回 FLV 短时效签名与多清晰度（AC-3）",
+      "method": "GET",
+      "path": "/api/v1/live/rooms/{id}/play-url",
+      "auth": "公开/用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-PLAY-02 / AC-3 / OP-8",
+      "source": "S3c",
+      "preconditions": [
+        "房间 LIVE"
+      ],
+      "request": "GET .../play-url?protocol=flv",
+      "checks": [
+        "protocol=flv",
+        "url 为短时效防盗链签名地址",
+        "expire_at 非空",
+        "definitions 含多清晰度"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-PLAY-003",
+      "api_id": "API-PLAY-02",
+      "module": "观看与播放",
+      "title": "protocol 非法枚举返回 40001",
+      "method": "GET",
+      "path": "/api/v1/live/rooms/{id}/play-url",
+      "auth": "公开/用户",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-PLAY-02 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "—"
+      ],
+      "request": "?protocol=rtmp",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "枚举仅 flv|hls"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-PLAY-004",
+      "api_id": "API-PLAY-02",
+      "module": "观看与播放",
+      "title": "已结束/不存在房间返回 40330",
+      "method": "GET",
+      "path": "/api/v1/live/rooms/{id}/play-url",
+      "auth": "公开/用户",
+      "expected_http": 404,
+      "expected_code": 40330,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-PLAY-02 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "房间已结束或不存在"
+      ],
+      "request": "GET .../play-url?protocol=flv",
+      "checks": [
+        "HTTP 404",
+        "code=40330（房间/资源已结束或不存在）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-PLAY-005",
+      "api_id": "API-PLAY-03",
+      "module": "观看与播放",
+      "title": "心跳与离开维护在线人数且心跳不落库",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/heartbeat",
+      "auth": "公开/用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-PLAY-03 / §6.3",
+      "source": "S3c",
+      "preconditions": [
+        "房间 LIVE"
+      ],
+      "request": "POST .../heartbeat",
+      "checks": [
+        "返回 online_cnt",
+        "Redis Set 维护（成员=userId,score=最近心跳）",
+        "心跳不落库（RISK-10）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-001",
+      "api_id": "API-INT-01",
+      "module": "基础互动/弹幕",
+      "title": "获取托管 IM usersig",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/im/usersig",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-INT-01 / DECISION-2",
+      "source": "S3c",
+      "preconditions": [
+        "已登录"
+      ],
+      "request": "{ role:\"MEMBER\" }",
+      "checks": [
+        "返回 sdk_app_id/user_id/user_sig/room_id/expire_at",
+        "房间=直播场次（DECISION-2）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-002",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "弹幕发送通过（已绑手机号、合规内容）",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-INT-02 / AC-4",
+      "source": "S3c",
+      "preconditions": [
+        "已绑手机号，内容合规"
+      ],
+      "request": "{ content:\"大家好\", client_msg_id:\"c_1\" }",
+      "checks": [
+        "data.pass=true",
+        "deduped=false",
+        "server_msg_id 非空",
+        "通过后由客户端经 IM 投递（UI 本地先回显+服务端确认）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-003",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "已登录未绑手机号发弹幕返回 40325",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 403,
+      "expected_code": 40325,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-02 / BR-1 / OP-14 / 40325",
+      "source": "S3c",
+      "preconditions": [
+        "已登录、未绑手机号"
+      ],
+      "request": "{ content:\"大家好\" }",
+      "checks": [
+        "HTTP 403",
+        "code=40325（已登录未绑手机号）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-004",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "弹幕超长（>50 字）返回 40001",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-02 / S1a 限流口径",
+      "source": "S3c",
+      "preconditions": [
+        "已绑手机号",
+        "内容 51 字"
+      ],
+      "request": "{ content:\"<51 字内容>\" }",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field=content"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-005",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "弹幕 50 字边界值允许通过",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-02 / S1a 限流口径",
+      "source": "S3c",
+      "preconditions": [
+        "已绑手机号",
+        "内容恰好 50 字"
+      ],
+      "request": "{ content:\"<50 字内容>\" }",
+      "checks": [
+        "code=0",
+        "data.pass=true（≤50 字为通过）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-006",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "弹幕 1 条/秒频控超频返回 42900",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 429,
+      "expected_code": 42900,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-02 / AC-4 / 42900",
+      "source": "S3c",
+      "preconditions": [
+        "1 秒内第 2 次发送"
+      ],
+      "request": "连续两次发送",
+      "checks": [
+        "HTTP 429",
+        "code=42900",
+        "前端进入 1s 倒计时环"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-007",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "5s 内重复内容被去重（不投递、不报错）",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-02 / AC-4",
+      "source": "S3c",
+      "preconditions": [
+        "5s 内发送相同内容"
+      ],
+      "request": "两次相同 content",
+      "checks": [
+        "code=0",
+        "data.deduped=true",
+        "不投递、不返回错误"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-008",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "敏感词命中返回 40001(field=content,reason=敏感词)",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-INT-02 / AC-4 / §2.7 备注",
+      "source": "S3c",
+      "preconditions": [
+        "内容含敏感词"
+      ],
+      "request": "{ content:\"<敏感词>\" }",
+      "checks": [
+        "HTTP 400",
+        "code=40001（复用既有码，不新增码位）",
+        "field=content",
+        "reason=敏感词",
+        "前端行内明确反馈（AC-4）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-009",
+      "api_id": "API-INT-02",
+      "module": "基础互动/弹幕",
+      "title": "被禁言用户发言返回 40300",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/danmaku",
+      "auth": "用户（已绑手机号）",
+      "expected_http": 403,
+      "expected_code": 40300,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-02 / AC-4 / BR-7",
+      "source": "S3c",
+      "preconditions": [
+        "用户已被本房间禁言（room_mute 未过期）"
+      ],
+      "request": "{ content:\"大家好\" }",
+      "checks": [
+        "HTTP 403",
+        "code=40300",
+        "S1b D-VIEW-004 输入框置灰 + 申诉入口"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-010",
+      "api_id": "API-INT-05",
+      "module": "基础互动/房管与举报",
+      "title": "主播授予房管成功",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/admins",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-INT-05 / BR-7",
+      "source": "S3c",
+      "preconditions": [
+        "房间归属本人"
+      ],
+      "request": "{ user_id:\"u_9\" }",
+      "checks": [
+        "返回 granted=true",
+        "房管仅可管理本直播间（BR-7）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-011",
+      "api_id": "API-INT-06",
+      "module": "基础互动/房管与举报",
+      "title": "房管禁言成功且被禁言用户发言被拒（AC-4）",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/mute",
+      "auth": "房管/主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-INT-06 / AC-4 / BR-7",
+      "source": "S3c",
+      "preconditions": [
+        "操作者为房管或主播",
+        "目标用户 V3 在房间内"
+      ],
+      "request": "{ user_id:\"V3\", duration_sec:600, reason:\"刷屏\" }",
+      "checks": [
+        "写 room_mute（含 expire_at）+ IM 成员禁言",
+        "V3 后续发言 → 40300",
+        "全端 1s 内同步（S1b）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-012",
+      "api_id": "API-INT-07",
+      "module": "基础互动/房管与举报",
+      "title": "房管踢出用户且不封禁账号",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/kick",
+      "auth": "房管/主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-INT-07 / BR-7",
+      "source": "S3c",
+      "preconditions": [
+        "操作者为房管"
+      ],
+      "request": "{ user_id:\"V3\" }",
+      "checks": [
+        "返回 kicked=true",
+        "写 room_ban + IM 移除",
+        "不改变账号封禁状态（房管无封禁权，BR-7）",
+        "V3 可重新进入"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-013",
+      "api_id": "API-INT-06",
+      "module": "基础互动/房管与举报",
+      "title": "普通用户越权禁言返回 40300",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/mute",
+      "auth": "房管/主播",
+      "expected_http": 403,
+      "expected_code": 40300,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-06 / BR-7 / AC-10",
+      "source": "S3c",
+      "preconditions": [
+        "请求者为普通观众"
+      ],
+      "request": "{ user_id:\"V3\", duration_sec:600 }",
+      "checks": [
+        "HTTP 403",
+        "code=40300",
+        "服务端校验角色，不信任前端"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-014",
+      "api_id": "API-INT-09",
+      "module": "基础互动/房管与举报",
+      "title": "举报提交进入审核队列",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/report",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-INT-09 / FR-9.4",
+      "source": "S3c",
+      "preconditions": [
+        "已登录用户 V1"
+      ],
+      "request": "{ reason_type:\"ILLEGAL\", desc:\"...\", images:[\"u1\",\"u2\",\"u3\"] }",
+      "checks": [
+        "返回 report_id",
+        "进审核队列与 AI 告警共用处置链路",
+        "证据 ≤3 张"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-INT-015",
+      "api_id": "API-INT-09",
+      "module": "基础互动/房管与举报",
+      "title": "举报证据超过 3 张返回 40001",
+      "method": "POST",
+      "path": "/api/v1/live/rooms/{id}/report",
+      "auth": "用户",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-INT-09 / FR-9.4",
+      "source": "S3c",
+      "preconditions": [
+        "images 传 4 张"
+      ],
+      "request": "{ reason_type:\"ILLEGAL\", images:[\"1\",\"2\",\"3\",\"4\"] }",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field=images"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-001",
+      "api_id": "API-ASSET-01",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "礼物目录仅返回在售（ON）礼物",
+      "method": "GET",
+      "path": "/api/v1/gifts",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ASSET-01 / FR-5.2",
+      "source": "S3c",
+      "preconditions": [
+        "存在下架礼物"
+      ],
+      "request": "Authorization: Bearer <token>",
+      "checks": [
+        "list 仅含 status=ON",
+        "含 id/name/price_coin/icon_url/effect_type",
+        "下架礼物不出现"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-002",
+      "api_id": "API-ASSET-02",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "赠送礼物三方一致且同事务落库（AC-5）",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ASSET-02 / AC-5 / BR-4",
+      "source": "S3c",
+      "preconditions": [
+        "余额充足",
+        "Idempotency-Key 唯一"
+      ],
+      "request": "{ session_id:\"s_1\", gift_id:1, count:1, to_anchor_id:\"a_1\" } + Idempotency-Key",
+      "checks": [
+        "返回 order_no/balance/total_coin/anchor_earned",
+        "扣送礼人余额 + wallet_ledger(biz_no 唯一) + earning_account.total_earned + earning_ledger + gift_order（同一本地事务）",
+        "余额、流水、主播收益三者一致"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-003",
+      "api_id": "API-ASSET-02",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "同 Idempotency-Key 重放不重复扣费（AC-5）",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-02 / AC-5 / §2.6",
+      "source": "S3c",
+      "preconditions": [
+        "同一 Idempotency-Key 重复提交"
+      ],
+      "request": "重复请求",
+      "checks": [
+        "返回 200 + 首次结果（非 40900）",
+        "返回同一 order_no",
+        "余额只扣减一次",
+        "无第二条扣费流水"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-004",
+      "api_id": "API-ASSET-02",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "未成年打赏超单笔限额返回 40320（AC-6）",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 403,
+      "expected_code": 40320,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-02 / AC-6 / BR-5 / 40320",
+      "source": "S3c",
+      "preconditions": [
+        "已实名未成年账号，余额充足，本次金额 > 单笔限额"
+      ],
+      "request": "{ gift_id:<高于单笔限额的礼物>, count:1 } + Idempotency-Key",
+      "checks": [
+        "HTTP 403",
+        "code=40320",
+        "不发起扣费",
+        "文案含限额与监护人验证（S1b 阻断态替换二次确认弹窗）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-005",
+      "api_id": "API-ASSET-02",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "未成年单日累计限额触顶返回 40320（AC-6）",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 403,
+      "expected_code": 40320,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-02 / AC-6 / BR-5",
+      "source": "S3c",
+      "preconditions": [
+        "当日累计已达单日限额"
+      ],
+      "request": "再发起一笔低于单笔限额的赠送",
+      "checks": [
+        "HTTP 403",
+        "code=40320",
+        "按 daily_limit_coin 阻断"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-006",
+      "api_id": "API-ASSET-02",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "OP-21 开关开启且未实名打赏返回 40350",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 403,
+      "expected_code": 40350,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-02 / OP-21 / 40350",
+      "source": "S3c",
+      "preconditions": [
+        "minor.limit_requires_realname=true",
+        "送礼人未实名/未年龄声明"
+      ],
+      "request": "{ gift_id:1, count:1 } + Idempotency-Key",
+      "checks": [
+        "HTTP 403",
+        "code=40350（未实名打赏前置未满足）",
+        "开关关闭时不触发本码"
+      ],
+      "runnable": true,
+      "pending_caliber": "OP-21"
+    },
+    {
+      "case_id": "TC-I-ASSET-007",
+      "api_id": "API-ASSET-02",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "余额不足返回 40001 且 field=balance",
+      "method": "POST",
+      "path": "/api/v1/gifts/send",
+      "auth": "用户",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-02 / §2.7",
+      "source": "S3c",
+      "preconditions": [
+        "余额 < 所需币"
+      ],
+      "request": "{ gift_id:1, count:1 } + Idempotency-Key",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field=balance",
+        "不扣费"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-008",
+      "api_id": "API-ASSET-03",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "钱包余额与充值套餐按端返回",
+      "method": "GET",
+      "path": "/api/v1/wallet",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ASSET-03 / OP-11",
+      "source": "S3c",
+      "preconditions": [
+        "Android 端 / iOS 端分别请求"
+      ],
+      "request": "GET /api/v1/wallet",
+      "checks": [
+        "Android/H5 packages 含 WECHAT/ALIPAY",
+        "iOS packages 仅 IAP",
+        "含 balance 与 coin_name"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-009",
+      "api_id": "API-ASSET-05",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "Android 充值下单成功并快照渠道费率",
+      "method": "POST",
+      "path": "/api/v1/wallet/recharge",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ASSET-05 / OP-11 / AC-8",
+      "source": "S3c",
+      "preconditions": [
+        "Android/H5",
+        "Idempotency-Key 唯一"
+      ],
+      "request": "{ package_id:1, pay_channel:\"WECHAT\" } + Idempotency-Key",
+      "checks": [
+        "返回 order_no/amount_fen/coin_amount/pay_params",
+        "recharge_order.channel_fee_rate 记录下单快照（历史可复算）",
+        "随后由回调加币"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-010",
+      "api_id": "API-ASSET-05",
+      "module": "礼物与虚拟资产/礼物与钱包",
+      "title": "iOS 端调用充值下单被拒返回 40001",
+      "method": "POST",
+      "path": "/api/v1/wallet/recharge",
+      "auth": "用户",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-05 / OP-11 / DECISION-3边界",
+      "source": "S3c",
+      "preconditions": [
+        "iOS 平台标识"
+      ],
+      "request": "{ package_id:1, pay_channel:\"WECHAT\" } + device.platform=IOS",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "iOS 必须走 IAP（平台不符）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-011",
+      "api_id": "API-ASSET-07",
+      "module": "礼物与虚拟资产/IAP与发票",
+      "title": "iOS 查询 IAP 商品映射（消耗型）",
+      "method": "GET",
+      "path": "/api/v1/wallet/iap/products",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ASSET-07 / OP-11",
+      "source": "S3c",
+      "preconditions": [
+        "iOS 端"
+      ],
+      "request": "Authorization: Bearer <token>",
+      "checks": [
+        "list 含 product_id/coin_amount/price_tier/status",
+        "iap_product 映射，消耗型"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-012",
+      "api_id": "API-ASSET-08",
+      "module": "礼物与虚拟资产/IAP与发票",
+      "title": "IAP 校验成功经验签与唯一性后加币（OP-11）",
+      "method": "POST",
+      "path": "/api/v1/wallet/iap/verify",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ASSET-08 / OP-11 / RISK-7",
+      "source": "S3c",
+      "preconditions": [
+        "iOS 沙盒购买成功",
+        "Idempotency-Key 唯一"
+      ],
+      "request": "{ signed_transaction_info:\"<JWS>\" } + Idempotency-Key",
+      "checks": [
+        "JWS 验签（x5c 链）",
+        "校验 productId/bundleId/环境",
+        "transaction_id 唯一（此前未处理）",
+        "调 App Store Server API 查状态（非 verifyReceipt）",
+        "幂等加币 + iap_transaction + 同事务维护 coin_pool_state"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-013",
+      "api_id": "API-ASSET-08",
+      "module": "礼物与虚拟资产/IAP与发票",
+      "title": "IAP 交易校验失败返回 40345",
+      "method": "POST",
+      "path": "/api/v1/wallet/iap/verify",
+      "auth": "用户",
+      "expected_http": 403,
+      "expected_code": 40345,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-08 / 40345",
+      "source": "S3c",
+      "preconditions": [
+        "构造验签失败/商品不匹配/环境不符"
+      ],
+      "request": "{ signed_transaction_info:\"<非法 JWS>\" } + Idempotency-Key",
+      "checks": [
+        "HTTP 403",
+        "code=40345",
+        "不增量加币"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-014",
+      "api_id": "API-ASSET-08",
+      "module": "礼物与虚拟资产/IAP与发票",
+      "title": "IAP 重复提交同一 transaction_id 幂等返回原结果",
+      "method": "POST",
+      "path": "/api/v1/wallet/iap/verify",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-08 / RISK-7",
+      "source": "S3c",
+      "preconditions": [
+        "同一 transaction_id 二次提交"
+      ],
+      "request": "重复请求",
+      "checks": [
+        "返回 200 + 原结果",
+        "不重复加币"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-015",
+      "api_id": "API-CB-07",
+      "module": "礼物与虚拟资产/IAP与发票",
+      "title": "Apple 退款/撤销通知触发逆向扣减（余额不足不静默）",
+      "method": "POST",
+      "path": "/webhook/apple/notifications",
+      "auth": "签名",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "§3.3 / §4.10 / RISK-7",
+      "source": "S3c",
+      "preconditions": [
+        "已处理的 transaction",
+        "通知类型 REFUND/REVOKE"
+      ],
+      "request": "{ signedPayload:\"<JWS>\" }",
+      "checks": [
+        "JWS 验签 + transaction_id 幂等",
+        "钱包余额逆向扣减，coin_pool_state 同步冲减",
+        "iap_transaction.status=REFUNDED/REVOKED",
+        "余额不足记负向流水并冻结打赏，不静默吞掉"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-016",
+      "api_id": "API-ASSET-09",
+      "module": "礼物与虚拟资产/IAP与发票",
+      "title": "非 IAP 订单申请电子发票成功",
+      "method": "POST",
+      "path": "/api/v1/invoices",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ASSET-09 / OP-11 / OP-22",
+      "source": "S3c",
+      "preconditions": [
+        "存在可开票的非 IAP 订单",
+        "invoice.iap_mode=APPLE_ONLY（默认）"
+      ],
+      "request": "{ recharge_order_ids:[\"o1\",\"o2\"], buyer_info:{title,tax_no,email} }",
+      "checks": [
+        "受理成功",
+        "仅非 IAP 订单由平台开票",
+        "返回状态可查询"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ASSET-017",
+      "api_id": "API-ASSET-09",
+      "module": "礼物与虚拟资产/IAP与发票",
+      "title": "IAP 订单开票按开关 APPLE_ONLY 引导 Apple 凭证",
+      "method": "POST",
+      "path": "/api/v1/invoices",
+      "auth": "用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ASSET-09 / OP-22",
+      "source": "S3c",
+      "preconditions": [
+        "仅含 IAP 订单",
+        "invoice.iap_mode=APPLE_ONLY"
+      ],
+      "request": "{ recharge_order_ids:[\"iap1\"], buyer_info:{...} }",
+      "checks": [
+        "平台不为 IAP 订单开票",
+        "响应含 iap_flag 引导 Apple 凭证",
+        "口径可随 invoice.iap_mode 切换（OP-22 待口径）"
+      ],
+      "runnable": true,
+      "pending_caliber": "OP-22"
+    },
+    {
+      "case_id": "TC-I-EARN-001",
+      "api_id": "API-EARN-01",
+      "module": "主播数据与收益",
+      "title": "数据总览按时间范围返回指标",
+      "method": "GET",
+      "path": "/api/v1/anchor/stats/overview?range=7d",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-EARN-01 / FR-10.1 / OP-2",
+      "source": "S3c",
+      "preconditions": [
+        "已实名主播有直播数据"
+      ],
+      "request": "range=7d",
+      "checks": [
+        "含 online_peak/watch_duration_sec/danmaku_cnt/gift_coin/followers_add",
+        "range 枚举 today|7d|30d，默认 7d"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-EARN-002",
+      "api_id": "API-EARN-03",
+      "module": "主播数据与收益",
+      "title": "主播收益账户字段名与界面标签一致（AC-8）",
+      "method": "GET",
+      "path": "/api/v1/anchor/earnings",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-EARN-03 / AC-8 / OP-15 / §5.3.1",
+      "source": "S3c",
+      "preconditions": [
+        "已实名主播"
+      ],
+      "request": "Authorization: Bearer <主播 token>",
+      "checks": [
+        "含 total_earned_amount/settling_amount/available_amount",
+        "withdrawable_min_amount=10000 分",
+        "anchor_tax_mode ∈ {SETTLE,WITHDRAW}（默认 SETTLE）",
+        "字段名 = S1b §11.2 B 域标签（§5.3.1 映射，非第二套口径）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-EARN-003",
+      "api_id": "API-EARN-05",
+      "module": "主播数据与收益",
+      "title": "结算账单逐字段 = S1a §3.4.6 示例（AC-8 断言基线）",
+      "method": "GET",
+      "path": "/api/v1/anchor/settlements",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-EARN-05 / AC-8 / §3.4.6 / OP-23（待口径）",
+      "source": "S3c",
+      "preconditions": [
+        "已生成 2026-11 账单（示例数据）"
+      ],
+      "request": "Authorization: Bearer <主播 token>",
+      "checks": [
+        "gross_amount=400000 / channel_fee=24450 / platform_tax_fee=22533",
+        "distributable=353017",
+        "anchor_gross=176508 / platform_net=176509",
+        "anchor_tax=10590 / anchor_net=165918",
+        "share_rate=0.5",
+        "channels 三项 gross_fen/fee_fen 与示例一致（200000/1200、125000/750、75000/22500）"
+      ],
+      "runnable": true,
+      "pending_caliber": "OP-23"
+    },
+    {
+      "case_id": "TC-I-EARN-004",
+      "api_id": "API-EARN-05",
+      "module": "主播数据与收益",
+      "title": "渠道明细闭合：Σfee + rounding_diff = 汇总 channel_fee",
+      "method": "GET",
+      "path": "/api/v1/anchor/settlements",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-EARN-05 / AC-8 / §3.4.5",
+      "source": "S3c",
+      "preconditions": [
+        "账单含多渠道"
+      ],
+      "request": "GET /api/v1/anchor/settlements",
+      "checks": [
+        "Σ channels.fee_fen = 1200+750+22500 = 24450 = 汇总 channel_fee",
+        "Σ gross_fen = 400000 = 汇总 gross_amount",
+        "rounding_diff_fen=0"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-EARN-005",
+      "api_id": "API-EARN-06",
+      "module": "主播数据与收益",
+      "title": "提现申请成功（税前金额=实际到账，SETTLE 模式）",
+      "method": "POST",
+      "path": "/api/v1/anchor/withdrawals",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-EARN-06 / AC-8 / BR-6 / OP-16 / N-2 / OP-23（待口径）",
+      "source": "S3c",
+      "preconditions": [
+        "PERSONAL 主播",
+        "available ≥ 10000 分",
+        "卡名与实名一致",
+        "Idempotency-Key 唯一"
+      ],
+      "request": "{ amount_fen:20000, bank_account_id:\"b_1\" } + Idempotency-Key",
+      "checks": [
+        "返回 order_no/pre_tax_amount=20000/tax_withheld=0/net_amount=20000/status=PENDING",
+        "anchor_tax_mode=SETTLE：net_amount=pre_tax_amount，不出现代扣个税行（个税规则待 OP-23）"
+      ],
+      "runnable": true,
+      "pending_caliber": "OP-23"
+    },
+    {
+      "case_id": "TC-I-EARN-006",
+      "api_id": "API-EARN-06",
+      "module": "主播数据与收益",
+      "title": "未达起提金额 100 元返回 40340",
+      "method": "POST",
+      "path": "/api/v1/anchor/withdrawals",
+      "auth": "主播",
+      "expected_http": 403,
+      "expected_code": 40340,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-EARN-06 / BR-6 / OP-16 / 40340",
+      "source": "S3c",
+      "preconditions": [
+        "available 充足",
+        "申请 5000 分（<10000）"
+      ],
+      "request": "{ amount_fen:5000, bank_account_id:\"b_1\" } + Idempotency-Key",
+      "checks": [
+        "HTTP 403",
+        "code=40340",
+        "文案含起提 ￥100.00 与当前可提现（S1b 行内 + 提交禁用）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-EARN-007",
+      "api_id": "API-EARN-06",
+      "module": "主播数据与收益",
+      "title": "起提金额边界 10000 分允许提交",
+      "method": "POST",
+      "path": "/api/v1/anchor/withdrawals",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-EARN-06 / OP-16",
+      "source": "S3c",
+      "preconditions": [
+        "available=10000 分",
+        "卡名与实名一致"
+      ],
+      "request": "{ amount_fen:10000, bank_account_id:\"b_1\" } + Idempotency-Key",
+      "checks": [
+        "code=0（=￥100 恰达起提门槛）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-EARN-008",
+      "api_id": "API-EARN-06",
+      "module": "主播数据与收益",
+      "title": "银行卡姓名与实名不一致被拒",
+      "method": "POST",
+      "path": "/api/v1/anchor/withdrawals",
+      "auth": "主播",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-EARN-06 / BR-6",
+      "source": "S3c",
+      "preconditions": [
+        "卡名 ≠ 实名"
+      ],
+      "request": "{ amount_fen:20000, bank_account_id:\"b_mismatch\" } + Idempotency-Key",
+      "checks": [
+        "被拒（40001 或 40340）",
+        "提示卡名须与实名一致（BR-6）",
+        "不发起提现"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-EARN-009",
+      "api_id": "API-EARN-06",
+      "module": "主播数据与收益",
+      "title": "非个人主播不可提现",
+      "method": "POST",
+      "path": "/api/v1/anchor/withdrawals",
+      "auth": "主播",
+      "expected_http": 403,
+      "expected_code": 40300,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-EARN-06 / OP-16",
+      "source": "S3c",
+      "preconditions": [
+        "anchor_type ≠ PERSONAL"
+      ],
+      "request": "{ amount_fen:20000, bank_account_id:\"b_1\" } + Idempotency-Key",
+      "checks": [
+        "被拒（仅 PERSONAL 可提现，OP-16）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-EARN-010",
+      "api_id": "API-EARN-06",
+      "module": "主播数据与收益",
+      "title": "WITHDRAW 模式下代扣个税生效",
+      "method": "POST",
+      "path": "/api/v1/anchor/withdrawals",
+      "auth": "主播",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-EARN-06 / §4.7 / OP-23",
+      "source": "S3c",
+      "preconditions": [
+        "anchor_tax_mode=WITHDRAW"
+      ],
+      "request": "{ amount_fen:20000 } + Idempotency-Key",
+      "checks": [
+        "tax_withheld > 0",
+        "net_amount = pre_tax_amount − tax_withheld",
+        "与 SETTLE 模式互斥（口径 OP-23 待定）"
+      ],
+      "runnable": true,
+      "pending_caliber": "OP-23"
+    },
+    {
+      "case_id": "TC-I-REP-001",
+      "api_id": "API-REP-01",
+      "module": "回放",
+      "title": "回放列表含 expire_at（结束+30 天）（AC-9）",
+      "method": "GET",
+      "path": "/api/v1/live/rooms/{id}/replays",
+      "auth": "公开/用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-REP-01 / AC-9 / OP-13",
+      "source": "S3c",
+      "preconditions": [
+        "房间已结束且已产生录制"
+      ],
+      "request": "GET /api/v1/live/rooms/r_1/replays",
+      "checks": [
+        "list 含 replay_id/session_id/play_url/duration/expire_at/status",
+        "expire_at = ended_at + 30d（OP-13）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-REP-002",
+      "api_id": "API-REP-02",
+      "module": "回放",
+      "title": "回放播放地址返回 HLS 地址",
+      "method": "GET",
+      "path": "/api/v1/replays/{replayId}/play-url",
+      "auth": "公开/用户",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-REP-02 / AC-9",
+      "source": "S3c",
+      "preconditions": [
+        "回放 status=READY"
+      ],
+      "request": "GET /api/v1/replays/rp_1/play-url",
+      "checks": [
+        "protocol=hls",
+        "url 非空",
+        "expire_at 非空"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-REP-003",
+      "api_id": "API-REP-02",
+      "module": "回放",
+      "title": "回放过期/下架返回 40330（非 404 空白）",
+      "method": "GET",
+      "path": "/api/v1/replays/{replayId}/play-url",
+      "auth": "公开/用户",
+      "expected_http": 404,
+      "expected_code": 40330,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-REP-02 / AC-9 / S1a 边界",
+      "source": "S3c",
+      "preconditions": [
+        "回放已过期或 status=REMOVED"
+      ],
+      "request": "GET /api/v1/replays/rp_expired/play-url",
+      "checks": [
+        "HTTP 404 + code=40330（明确错误，非空白）",
+        "前端卡片置灰不可点"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-001",
+      "api_id": "API-ADM-21",
+      "module": "后台/审核与运营",
+      "title": "后台接口全量 RBAC：无权限返回 40300",
+      "method": "GET",
+      "path": "/api/v1/admin/finance/settlements",
+      "auth": "后台:finance",
+      "expected_http": 403,
+      "expected_code": 40300,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-21 / §2.3 / FR-11.4 / AC-10",
+      "source": "S3c",
+      "preconditions": [
+        "以 auditor 角色访问 finance 接口"
+      ],
+      "request": "Authorization: Bearer <auditor token>",
+      "checks": [
+        "HTTP 403",
+        "code=40300",
+        "ops/auditor/finance 权限分离",
+        "不泄露数据（AC-10）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-002",
+      "api_id": "API-ADM-05",
+      "module": "后台/审核与运营",
+      "title": "强制关播需原因码并留痕",
+      "method": "POST",
+      "path": "/api/v1/admin/rooms/{id}/force-stop",
+      "auth": "后台:ops/auditor",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-05 / FR-9.2 / AC-7",
+      "source": "S3c",
+      "preconditions": [
+        "房间 LIVE",
+        "操作者 auditor"
+      ],
+      "request": "{ reason_code:\"R-2071\", remark:\"人工复核确认违规，已留存快照\" }",
+      "checks": [
+        "强制关播成功",
+        "触发 moderation_action 留痕 + IM 系统消息 + 列表移除",
+        "不可逆"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-003",
+      "api_id": "API-ADM-06/07",
+      "module": "后台/审核与运营",
+      "title": "审核队列按 risk_level 排序并可认领",
+      "method": "GET",
+      "path": "/api/v1/admin/moderation/tasks",
+      "auth": "后台:auditor",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-06/07 / FR-9.2 / AC-7",
+      "source": "S3c",
+      "preconditions": [
+        "存在多条任务，风险等级不同"
+      ],
+      "request": "GET /api/v1/admin/moderation/tasks",
+      "checks": [
+        "队列按 risk_level 排序",
+        "可认领（claim）后进入处置"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-004",
+      "api_id": "API-ADM-08",
+      "module": "后台/审核与运营",
+      "title": "审核处置成功写证据且记录不可删除（AC-7）",
+      "method": "POST",
+      "path": "/api/v1/admin/moderation/actions",
+      "auth": "后台:auditor",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-08 / AC-7 / FR-9.3",
+      "source": "S3c",
+      "preconditions": [
+        "已认领任务",
+        "备注 ≥5 字"
+      ],
+      "request": "{ task_id:\"t_1\", action:\"CUT\", reason_code:\"R-2071\", remark:\"人工复核确认，已留存快照\", evidence_urls:[\"cos://\"] }",
+      "checks": [
+        "处置成功，写 moderation_evidence（COS）",
+        "记录不可物理删除",
+        "处置详情含操作人/时间/原因码/证据"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-005",
+      "api_id": "API-ADM-08",
+      "module": "后台/审核与运营",
+      "title": "处置备注不足 5 字返回 40001",
+      "method": "POST",
+      "path": "/api/v1/admin/moderation/actions",
+      "auth": "后台:auditor",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-08 / S1b D-ADM-002",
+      "source": "S3c",
+      "preconditions": [
+        "备注 4 字"
+      ],
+      "request": "{ task_id:\"t_1\", action:\"CUT\", reason_code:\"R-2071\", remark:\"确认\" }",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field=remark（S1b D-ADM-002）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-006",
+      "api_id": "API-ADM-08",
+      "module": "后台/审核与运营",
+      "title": "同一房间被他人锁定后处置被拒",
+      "method": "POST",
+      "path": "/api/v1/admin/moderation/actions",
+      "auth": "后台:auditor",
+      "expected_http": 409,
+      "expected_code": 40900,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-08 / S1b D-ADM-001",
+      "source": "S3c",
+      "preconditions": [
+        "房间已被另一审核员锁定"
+      ],
+      "request": "{ task_id:\"t_1\", action:\"CUT\", ... }",
+      "checks": [
+        "HTTP 409",
+        "code=40900",
+        "防双人重复断流（S1b D-ADM-001 冲突态）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-007",
+      "api_id": "API-ADM-12/13",
+      "module": "后台/审核与运营",
+      "title": "申诉处理：deadline=处置+7d 且申诉期处置不解除",
+      "method": "POST",
+      "path": "/api/v1/admin/appeals/{id}/handle",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-12/13 / BR-8 / OP-17",
+      "source": "S3c",
+      "preconditions": [
+        "存在申诉单，未超 7 天"
+      ],
+      "request": "{ action:\"REJECT\", reason_code:\"R-2071\" }",
+      "checks": [
+        "deadline_at = action_time + 7d",
+        "申诉期间处置不解除（BR-8）",
+        "超期申诉不可提交"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-008",
+      "api_id": "API-ADM-20",
+      "module": "后台/审核与运营",
+      "title": "系统配置可覆盖全部可调口径且不发版",
+      "method": "PUT",
+      "path": "/api/v1/admin/sys-config/{key}",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-20 / §11.3",
+      "source": "S3c",
+      "preconditions": [
+        "超管身份"
+      ],
+      "request": "PUT /api/v1/admin/sys-config/anchor_share_rate {value:0.5}",
+      "checks": [
+        "可配分成率/渠道费率/税率与扣减顺序/起提金额/结算周期/未成年限额/类目/支付渠道与 IAP 档位/申诉时限/断流阈值/回放留存",
+        "改口径不发版",
+        "写操作留审计"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-009",
+      "api_id": "API-ADM-21/22",
+      "module": "后台/财务与审计",
+      "title": "财务账单详情含渠道构成明细（AC-8）",
+      "method": "GET",
+      "path": "/api/v1/admin/finance/settlements/{billId}",
+      "auth": "后台:finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-21/22 / AC-8",
+      "source": "S3c",
+      "preconditions": [
+        "账单已生成"
+      ],
+      "request": "Authorization: Bearer <finance token>",
+      "checks": [
+        "返回 settlement_bill 全部冻结字段 + settlement_bill_channel 明细",
+        "供财务复算 Σfee + rounding_diff = channel_fee"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-010",
+      "api_id": "API-ADM-23",
+      "module": "后台/财务与审计",
+      "title": "月结生成幂等：同期不可重复出账",
+      "method": "POST",
+      "path": "/api/v1/admin/finance/settlements/generate",
+      "auth": "后台:finance",
+      "expected_http": 409,
+      "expected_code": 40900,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-23 / §6.3",
+      "source": "S3c",
+      "preconditions": [
+        "该周期已出账"
+      ],
+      "request": "{ period:\"2026-11\" }",
+      "checks": [
+        "重复出账被拒（409/40900 或明确幂等语义）",
+        "账已出不可变"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-011",
+      "api_id": "API-ADM-25/26",
+      "module": "后台/财务与审计",
+      "title": "提现审核驳回需原因码且同步主播端",
+      "method": "POST",
+      "path": "/api/v1/admin/finance/withdrawals/{id}/review",
+      "auth": "后台:finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-25/26 / FR-11.3",
+      "source": "S3c",
+      "preconditions": [
+        "存在待审提现单"
+      ],
+      "request": "{ action:\"REJECT\", reason_code:\"BANK_MISMATCH\" }",
+      "checks": [
+        "驳回成功并留痕",
+        "原因码必填",
+        "主播端提现记录同步显示已驳回 + 原因"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-012",
+      "api_id": "API-ADM-27",
+      "module": "后台/财务与审计",
+      "title": "对账差异非 0 时冻结出款（AC-8）",
+      "method": "GET",
+      "path": "/api/v1/admin/finance/reconcile",
+      "auth": "后台:finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-27 / AC-8",
+      "source": "S3c",
+      "preconditions": [
+        "构造 reconcile_diff ≠ 0"
+      ],
+      "request": "GET /api/v1/admin/finance/reconcile",
+      "checks": [
+        "返回 reconcile_diff",
+        "五条对账等式差异非 0 → 冻结出款（S1b D-ADM-003）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-ADM-013",
+      "api_id": "API-ADM-29",
+      "module": "后台/财务与审计",
+      "title": "后台写操作写入审计日志（AC-10）",
+      "method": "GET",
+      "path": "/api/v1/admin/audit-logs",
+      "auth": "后台:ops/finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-29 / FR-11.4 / AC-10",
+      "source": "S3c",
+      "preconditions": [
+        "刚执行过一次处置与一次配置修改"
+      ],
+      "request": "GET /api/v1/admin/audit-logs",
+      "checks": [
+        "包含操作人/时间/模块/动作/目标/before_json/after_json/ip",
+        "保留 ≥1 年",
+        "不可编辑不可删除"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-CB-001",
+      "api_id": "API-CB-01",
+      "module": "第三方回调",
+      "title": "推流回调验签+幂等并更新场次状态（断流 60s 同场次）",
+      "method": "POST",
+      "path": "/webhook/css/stream",
+      "auth": "签名",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-CB-01 / FR-2.3 / OP-18",
+      "source": "S3c",
+      "preconditions": [
+        "合法签名 + 事件 ID"
+      ],
+      "request": "{ event_id, event_type:\"stream_interrupted\" }",
+      "checks": [
+        "验签通过 + 事件 ID 幂等",
+        "更新 live_session 状态",
+        "断流重连 60s 内视为同场次"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-CB-002",
+      "api_id": "API-CB-02",
+      "module": "第三方回调",
+      "title": "录制回调生成 replay_record（expire=ended+30d）",
+      "method": "POST",
+      "path": "/webhook/css/record",
+      "auth": "签名",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-CB-02 / AC-9 / OP-13",
+      "source": "S3c",
+      "preconditions": [
+        "合法签名"
+      ],
+      "request": "{ vod_file_id, play_url, ended_at }",
+      "checks": [
+        "生成 replay_record",
+        "expire_at = ended_at + 30d（OP-13）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-CB-003",
+      "api_id": "API-CB-03",
+      "module": "第三方回调",
+      "title": "音视频/文本审核回调入 moderation_task 并按风险分流",
+      "method": "POST",
+      "path": "/webhook/css/image-audit",
+      "auth": "签名",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-CB-03 / FR-9.1 / AC-7",
+      "source": "S3c",
+      "preconditions": [
+        "合法签名",
+        "命中规则"
+      ],
+      "request": "{ ... }",
+      "checks": [
+        "验签 + 幂等落 moderation_task",
+        "按 risk_level 分流（高→自动断流转人审）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-CB-004",
+      "api_id": "API-CB-05",
+      "module": "第三方回调",
+      "title": "微信支付回调验签+金额复核+幂等维护币池",
+      "method": "POST",
+      "path": "/webhook/pay/wechat",
+      "auth": "签名",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-CB-05 / FR-5.1 / AC-5",
+      "source": "S3c",
+      "preconditions": [
+        "合法签名",
+        "订单金额与回调一致"
+      ],
+      "request": "{ ... }",
+      "checks": [
+        "验签 + 事件 ID 幂等 + 金额复核",
+        "加币并同事务维护 coin_pool_state",
+        "篡改金额 → 拒绝"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-CB-007",
+      "api_id": "API-CB-06",
+      "module": "第三方回调",
+      "title": "支付宝支付回调验签+金额复核+幂等维护币池（OP-11 双渠道）",
+      "method": "POST",
+      "path": "/webhook/pay/alipay",
+      "auth": "签名",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-CB-06 / OP-11 / FR-5.1 / AC-5",
+      "source": "S3c",
+      "preconditions": [
+        "合法签名（支付宝异步通知）",
+        "订单金额与回调金额一致",
+        "Idempotency/事件唯一标识未处理过"
+      ],
+      "request": "{ out_trade_no, trade_status:\"TRADE_SUCCESS\", total_amount, sign }",
+      "checks": [
+        "验签（支付宝公钥）通过 + 事件唯一标识幂等",
+        "**金额复核**：回调金额 == recharge_order.amount_fen，不一致则拒绝加币",
+        "加币并**同事务维护 coin_pool_state**（增量累加）",
+        "recharge_order.status → PAID",
+        "重复回调不重复加币"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-CB-005",
+      "api_id": "—",
+      "module": "第三方回调",
+      "title": "回调验签失败被拒绝",
+      "method": "POST",
+      "path": "/webhook/pay/wechat",
+      "auth": "签名",
+      "expected_http": 403,
+      "expected_code": 40300,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "§4.10 / §2.7 / §6.3 / AC-10",
+      "source": "S3c",
+      "preconditions": [
+        "伪造签名"
+      ],
+      "request": "{ 伪造签名 }",
+      "checks": [
+        "验签失败被拒（HTTP 403 / code=40300，按契约 §2.7 的 code↔HTTP 映射）",
+        "不产生加币或状态变更",
+        "记录异常"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-CB-006",
+      "api_id": "—",
+      "module": "第三方回调",
+      "title": "回调 5 秒内返回且业务异步处理",
+      "method": "POST",
+      "path": "/webhook/css/stream",
+      "auth": "签名",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "§4.10",
+      "source": "S3c",
+      "preconditions": [
+        "合法签名"
+      ],
+      "request": "正常回调",
+      "checks": [
+        "响应 200 {code:0}",
+        "业务处理异步，不阻塞超 5s",
+        "失败可重放"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-001",
+      "api_id": "API-ADM-01",
+      "module": "后台/用户与房间管理（增量5 新增）",
+      "title": "用户列表按状态/关键词分页返回",
+      "method": "GET",
+      "path": "/api/v1/admin/users",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-01 / FR-11.1 / D-ADM-002",
+      "source": "T2-supplement",
+      "preconditions": [
+        "ops 角色登录",
+        "库内 ≥21 个用户（含正常/封禁各若干）"
+      ],
+      "request": "GET /api/v1/admin/users?status=ACTIVE&keyword=138&page=1&size=20",
+      "checks": [
+        "data={list,total,page,size}",
+        "仅返回 status=ACTIVE 且在关键词命中",
+        "手机号以掩码返回（不返回明文）",
+        "total 与筛选后总数一致"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-002",
+      "api_id": "API-ADM-01",
+      "module": "后台/用户与房间管理（增量5 新增）",
+      "title": "用户列表非法 status 枚举返回 40001",
+      "method": "GET",
+      "path": "/api/v1/admin/users",
+      "auth": "后台:ops",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-01 / §2.7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "ops 角色"
+      ],
+      "request": "?status=NOPE",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field 指向 status"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-003",
+      "api_id": "API-ADM-02",
+      "module": "后台/用户与房间管理（增量5 新增）",
+      "title": "封禁用户成功并写审计（AC-10）",
+      "method": "POST",
+      "path": "/api/v1/admin/users/{id}/ban",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-02 / FR-11.1 / AC-10",
+      "source": "T2-supplement",
+      "preconditions": [
+        "ops 角色",
+        "目标用户 status=ACTIVE"
+      ],
+      "request": "{ reason_code:\"R-1002\", remark:\"违规内容累计 3 次\" }",
+      "checks": [
+        "user.status=BANNED",
+        "返回 banned_until（若临时封禁）",
+        "写 admin_operation_log（操作人/原因码/前后值）",
+        "该用户后续登录/发言被拒"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-004",
+      "api_id": "API-ADM-02",
+      "module": "后台/用户与房间管理（增量5 新增）",
+      "title": "重复封禁已封禁用户返回 40900",
+      "method": "POST",
+      "path": "/api/v1/admin/users/{id}/ban",
+      "auth": "后台:ops",
+      "expected_http": 409,
+      "expected_code": 40900,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-02 / §2.7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "目标用户已 BANNED"
+      ],
+      "request": "{ reason_code:\"R-1002\" }",
+      "checks": [
+        "HTTP 409",
+        "code=40900",
+        "不重复写审计"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-005",
+      "api_id": "API-ADM-03",
+      "module": "后台/用户与房间管理（增量5 新增）",
+      "title": "解封用户成功并恢复可用",
+      "method": "POST",
+      "path": "/api/v1/admin/users/{id}/unban",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-03 / FR-11.1",
+      "source": "T2-supplement",
+      "preconditions": [
+        "目标用户 status=BANNED"
+      ],
+      "request": "{ remark:\"申诉通过，解除封禁\" }",
+      "checks": [
+        "user.status=ACTIVE",
+        "写审计",
+        "该用户可正常登录"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-006",
+      "api_id": "API-ADM-04",
+      "module": "后台/用户与房间管理（增量5 新增）",
+      "title": "直播间列表按状态筛选并含在线人数",
+      "method": "GET",
+      "path": "/api/v1/admin/rooms",
+      "auth": "后台:ops/auditor",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-04 / FR-11.1 / D-ADM-001",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在 LIVE/ENDED 房间"
+      ],
+      "request": "GET /api/v1/admin/rooms?status=LIVE&page=1&size=20",
+      "checks": [
+        "仅返回 status=LIVE",
+        "含 room_id/anchor/title/online_cnt/started_at",
+        "分页字段完整"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-007",
+      "api_id": "API-ADM-09",
+      "module": "后台/审核证据与举报（增量5 新增/补全）",
+      "title": "按处置 ID 查询证据快照",
+      "method": "GET",
+      "path": "/api/v1/admin/moderation/evidence/{actionId}",
+      "auth": "后台:auditor",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-09 / FR-9.3 / AC-7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在 actionId 对应的处置记录"
+      ],
+      "request": "GET /api/v1/admin/moderation/evidence/act_1",
+      "checks": [
+        "返回证据列表（截图/音频 URL，COS 短时效签名）",
+        "含 action_id 关联与采集时间"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-008",
+      "api_id": "API-ADM-09",
+      "module": "后台/审核证据与举报（增量5 新增/补全）",
+      "title": "证据不存在返回 40330",
+      "method": "GET",
+      "path": "/api/v1/admin/moderation/evidence/{actionId}",
+      "auth": "后台:auditor",
+      "expected_http": 404,
+      "expected_code": 40330,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-09 / §2.7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "actionId 不存在"
+      ],
+      "request": "GET .../evidence/not_exist",
+      "checks": [
+        "HTTP 404",
+        "code=40330",
+        "不返回空对象伪装成功"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-009",
+      "api_id": "API-ADM-10",
+      "module": "后台/审核证据与举报（增量5 新增/补全）",
+      "title": "举报列表按状态分页",
+      "method": "GET",
+      "path": "/api/v1/admin/reports",
+      "auth": "后台:auditor/ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-10 / FR-9.4",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在 PENDING/DONE 举报"
+      ],
+      "request": "GET /api/v1/admin/reports?status=PENDING",
+      "checks": [
+        "仅返回 PENDING",
+        "含 report_id/room_id/reason_type/created_at",
+        "分页字段完整"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-010",
+      "api_id": "API-ADM-11",
+      "module": "后台/审核证据与举报（增量5 新增/补全）",
+      "title": "处理举报并联动处置",
+      "method": "POST",
+      "path": "/api/v1/admin/reports/{id}/handle",
+      "auth": "后台:auditor/ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-11 / FR-9.4 / AC-7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在 PENDING 举报"
+      ],
+      "request": "{ action:\"REJECT\", reason_code:\"R-0000\", remark:\"经复核不构成违规\" }",
+      "checks": [
+        "report.status=DONE",
+        "写处置留痕（可追溯）",
+        "remark ≥5 字校验"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-011",
+      "api_id": "API-ADM-14",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "礼物列表含下架项与分页",
+      "method": "GET",
+      "path": "/api/v1/admin/gifts",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-14 / FR-5.2",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在 ON/OFF 礼物"
+      ],
+      "request": "GET /api/v1/admin/gifts?page=1&size=20",
+      "checks": [
+        "返回全部状态（含 OFF），与用户端仅 ON 形成对照",
+        "含 id/name/price_coin/status/sort"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-012",
+      "api_id": "API-ADM-15",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "新建礼物成功",
+      "method": "POST",
+      "path": "/api/v1/admin/gifts",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-15 / FR-5.2",
+      "source": "T2-supplement",
+      "preconditions": [
+        "ops 角色"
+      ],
+      "request": "{ name:\"星河\", price_coin:520, icon_url:\"cos://\", effect_type:\"NORMAL\", status:\"ON\" }",
+      "checks": [
+        "返回 gift_id",
+        "用户端 GET /gifts 可见（增量联动）",
+        "price_coin 为正整数才可建"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-013",
+      "api_id": "API-ADM-15",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "新建礼物重名返回 40900",
+      "method": "POST",
+      "path": "/api/v1/admin/gifts",
+      "auth": "后台:ops",
+      "expected_http": 409,
+      "expected_code": 40900,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-15 / §2.7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "已存在同名在售礼物"
+      ],
+      "request": "{ name:\"星河\", price_coin:520 }",
+      "checks": [
+        "HTTP 409",
+        "code=40900",
+        "不产生重复礼物"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-014",
+      "api_id": "API-ADM-16",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "修改礼物价格/上下架成功",
+      "method": "PATCH",
+      "path": "/api/v1/admin/gifts/{id}",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-16 / FR-5.2",
+      "source": "T2-supplement",
+      "preconditions": [
+        "礼物存在"
+      ],
+      "request": "{ price_coin:888, status:\"OFF\" }",
+      "checks": [
+        "价格与状态更新",
+        "下架后用户端 GET /gifts 不再返回"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-015",
+      "api_id": "API-ADM-16",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "礼物价格为 0 或负数返回 40001",
+      "method": "PATCH",
+      "path": "/api/v1/admin/gifts/{id}",
+      "auth": "后台:ops",
+      "expected_http": 400,
+      "expected_code": 40001,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-16 / §2.7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "礼物存在"
+      ],
+      "request": "{ price_coin:0 }",
+      "checks": [
+        "HTTP 400",
+        "code=40001",
+        "field=price_coin"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-016",
+      "api_id": "API-ADM-17",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "类目列表含 4 类与启停状态",
+      "method": "GET",
+      "path": "/api/v1/admin/categories",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-17 / FR-11.2 / OP-7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "—"
+      ],
+      "request": "GET /api/v1/admin/categories",
+      "checks": [
+        "返回才艺/游戏/闲聊/生活 4 条（OP-7）",
+        "含 status/sort/require_qualification"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-017",
+      "api_id": "API-ADM-18",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "类目启停切换成功且影响开播白名单",
+      "method": "PATCH",
+      "path": "/api/v1/admin/categories/{id}",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-18 / FR-11.2 / OP-7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "类目存在"
+      ],
+      "request": "{ status:\"DISABLED\" }",
+      "checks": [
+        "类目状态更新",
+        "下架类目不再出现在开播类目白名单（API-LIVE-02 校验联动）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-018",
+      "api_id": "API-ADM-19a",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "Banner 列表含排期与投放位",
+      "method": "GET",
+      "path": "/api/v1/admin/banners",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-19 / FR-11.2",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在多条 banner"
+      ],
+      "request": "GET /api/v1/admin/banners",
+      "checks": [
+        "含 id/title/image_url/link/slot/start_at/end_at/status",
+        "按 sort 返回"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-019",
+      "api_id": "API-ADM-19b",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "新建 Banner 成功（含排期）",
+      "method": "POST",
+      "path": "/api/v1/admin/banners",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-19 / FR-11.2",
+      "source": "T2-supplement",
+      "preconditions": [
+        "ops 角色"
+      ],
+      "request": "{ title:\"双十一\", image_url:\"cos://\", link:\"mars://room/1\", slot:\"HOME_TOP\", start_at, end_at }",
+      "checks": [
+        "返回 banner_id",
+        "start_at > end_at 时被拒（40001）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-020",
+      "api_id": "API-ADM-19c",
+      "module": "后台/礼物·类目·Banner（增量5 新增）",
+      "title": "修改 Banner 成功（v1.3 新增端点）",
+      "method": "PATCH",
+      "path": "/api/v1/admin/banners/{id}",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-19c / v1.3 新增 / FR-11.2",
+      "source": "T2-supplement",
+      "preconditions": [
+        "banner 存在"
+      ],
+      "request": "{ status:\"OFF\", sort:10 }",
+      "checks": [
+        "字段更新成功",
+        "不影响未到期 banner 的既有投放"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-021",
+      "api_id": "API-ADM-22",
+      "module": "后台/财务（增量5 新增/补全）",
+      "title": "账单详情返回 8 个冻结字段 + 渠道明细（AC-8）",
+      "method": "GET",
+      "path": "/api/v1/admin/finance/settlements/{billId}",
+      "auth": "后台:finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-22 / AC-8 / §3.4.6",
+      "source": "T2-supplement",
+      "preconditions": [
+        "账单已生成（2026-11）"
+      ],
+      "request": "GET /api/v1/admin/finance/settlements/bill_1",
+      "checks": [
+        "gross_amount=400000 / channel_fee=24450 / platform_tax_fee=22533 / distributable=353017",
+        "anchor_gross=176508 / platform_net=176509 / anchor_tax=10590 / anchor_net=165918",
+        "channels 三项 fee_fen=1200/750/22500",
+        "Σfee+rounding_diff=channel_fee"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-022",
+      "api_id": "API-ADM-22",
+      "module": "后台/财务（增量5 新增/补全）",
+      "title": "账单不存在返回 40330",
+      "method": "GET",
+      "path": "/api/v1/admin/finance/settlements/{billId}",
+      "auth": "后台:finance",
+      "expected_http": 404,
+      "expected_code": 40330,
+      "priority": "P3",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-22 / §2.7",
+      "source": "T2-supplement",
+      "preconditions": [
+        "billId 不存在"
+      ],
+      "request": "GET .../settlements/not_exist",
+      "checks": [
+        "HTTP 404",
+        "code=40330"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-023",
+      "api_id": "API-ADM-24",
+      "module": "后台/财务（增量5 新增/补全）",
+      "title": "提现申请列表按状态筛选",
+      "method": "GET",
+      "path": "/api/v1/admin/finance/withdrawals",
+      "auth": "后台:finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-24 / FR-11.3 / OP-16",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在 PENDING/PAID/REJECTED 申请"
+      ],
+      "request": "GET /api/v1/admin/finance/withdrawals?status=PENDING",
+      "checks": [
+        "仅返回 PENDING",
+        "含 order_no/anchor/pre_tax_amount/tax_withheld/net_amount/bank/status",
+        "分页完整"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-024",
+      "api_id": "API-ADM-28a",
+      "module": "后台/财务（增量5 新增/补全）",
+      "title": "发票申请列表",
+      "method": "GET",
+      "path": "/api/v1/admin/finance/invoices",
+      "auth": "后台:finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-28 / FR-11.3 / OP-22",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在发票申请"
+      ],
+      "request": "GET /api/v1/admin/finance/invoices?status=PENDING",
+      "checks": [
+        "含 invoice_id/order_ids/amount/status/buyer",
+        "IAP 订单按 iap_mode 标记"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-025",
+      "api_id": "API-ADM-28b",
+      "module": "后台/财务（增量5 新增/补全）",
+      "title": "开票（出票）成功并回写状态",
+      "method": "POST",
+      "path": "/api/v1/admin/finance/invoices/{id}/issue",
+      "auth": "后台:finance",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-28 / OP-11 / OP-22",
+      "source": "T2-supplement",
+      "preconditions": [
+        "存在 PENDING 发票申请",
+        "非 IAP 订单"
+      ],
+      "request": "{ invoice_no:\"INV-202611-0001\", pdf_url:\"cos://\" }",
+      "checks": [
+        "invoice.status=ISSUED",
+        "用户端可下载/查看进度",
+        "IAP 申请按 APPLE_ONLY 拒绝平台出票"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-026",
+      "api_id": "API-ADM-30",
+      "module": "后台/审核原因码（v1.3 新增）",
+      "title": "原因码列表与申诉窗口同源下发（v1.3 新增端点）",
+      "method": "GET",
+      "path": "/api/v1/admin/moderation/reason-codes",
+      "auth": "后台:auditor/ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-30 / v1.3 新增 / FR-9.2 / BR-8",
+      "source": "T2-supplement",
+      "preconditions": [
+        "sys_config.appeal_days 默认 7"
+      ],
+      "request": "GET /api/v1/admin/moderation/reason-codes",
+      "checks": [
+        "list 含 {code,label}（与处置页原因码一致）",
+        "appeal_window_days=7（取 sys_config.appeal_days）",
+        "auditor/ops 均可读"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-027",
+      "api_id": "API-ADM-30",
+      "module": "后台/审核原因码（v1.3 新增）",
+      "title": "appeal_days 改配置后原因码接口同步变化（去 7d 硬编码）",
+      "method": "GET",
+      "path": "/api/v1/admin/moderation/reason-codes",
+      "auth": "后台:auditor/ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P1",
+      "coverage_dimension": "边界场景",
+      "trace": "API-ADM-30 / v1.3 / BR-8 / OP-17",
+      "source": "T2-supplement",
+      "preconditions": [
+        "将 sys_config.appeal_days 由 7 改为 10"
+      ],
+      "request": "GET /api/v1/admin/moderation/reason-codes",
+      "checks": [
+        "appeal_window_days=10（无硬编码）",
+        "与 API-ADM-12/13 的 deadline_at、API-ADM-08 处置应答同源",
+        "全仓 plusDays(7) 已为 0 处（v1.3 闭合）"
+      ],
+      "runnable": true
+    },
+    {
+      "case_id": "TC-I-T2-ADM-028",
+      "api_id": "API-ADM-20a",
+      "module": "后台/系统配置（增量5 补全）",
+      "title": "系统配置列表返回全部可调口径与当前值",
+      "method": "GET",
+      "path": "/api/v1/admin/sys-config",
+      "auth": "后台:ops",
+      "expected_http": 200,
+      "expected_code": 0,
+      "priority": "P2",
+      "coverage_dimension": "全量场景",
+      "trace": "API-ADM-20 / §11.3",
+      "source": "T2-supplement",
+      "preconditions": [
+        "ops 超管登录"
+      ],
+      "request": "GET /api/v1/admin/sys-config",
+      "checks": [
+        "含 anchor_share_rate / channel_fee_rate / platform_tax_rate / withdraw_min_amount / settlement_cycle / minor_limit / appeal_days / idle_timeout 等",
+        "每项含 key/value/description/updated_at",
+        "读取不写审计"
+      ],
+      "runnable": true
+    }
+  ]
+}

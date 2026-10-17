@@ -1,0 +1,15 @@
+{
+  "name": "mars-1-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MARS-1 UI E2E skeleton (assets only; execution belongs to T3)",
+  "scripts": {
+    "list": "playwright test --list",
+    "test": "playwright test",
+    "smoke": "playwright test specs/smoke.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "typescript": "^5.6.0"
+  }
+}
